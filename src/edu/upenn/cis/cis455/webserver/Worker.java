@@ -37,17 +37,16 @@ public class Worker implements Runnable{
 				try {
 					input = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error("Could not read input");
 				}
 				
 				HttpRequest request = new HttpRequest();
 				try {
 					request.parseRequest(input);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error("Could not parse request");
 				}
+				
 			}
 		}
 			  

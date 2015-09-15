@@ -11,8 +11,9 @@ public class HttpRequest {
 	private HashMap <String, String> headers;
 	
 	public void parseRequest(BufferedReader request) throws IOException{
+		headers = new HashMap<String, String>();
 		String line;
-		while((line = request.readLine())!=""){
+		while(!(line = request.readLine()).trim().equals("")){
 			//Get request line
 			if(line.contains("GET") || line.contains("HEAD")){
 				String [] parts = line.split(" ");
@@ -20,7 +21,7 @@ public class HttpRequest {
 				uri = parts[1];
 				version = parts[2].split("/")[1];
 			}else{ //Get request headers
-				String [] parts = line.split(":");
+				String [] parts = line.split(": ");
 				headers.put(parts[0], parts[1]);
 			}
 		}	
