@@ -30,7 +30,17 @@ class HttpServer {
 	  
 	  //Queue for incoming requests
 	  Queue <Socket> queue = new LinkedList <Socket>();
-	  int count = 0; 
+	  
+	  //Create a threadpool
+	  ArrayList<Thread> threadPool = new ArrayList<Thread>();
+	  
+	  for(int i=0;i<MAX_THREADS;i++){
+		  Worker worker = new Worker(queue, baseDir);
+		  Thread new_worker = new Thread(worker);
+		  new_worker.start();
+		  threadPool.add(new_worker);
+	  }
+	  
 	  while(true){
 		  
 		  Socket clientSock = null;
@@ -49,21 +59,6 @@ class HttpServer {
 			  queue.add(clientSock);
 			  queue.notifyAll();
 		  }
-		  
-		  //Create a threadpool
-		  ArrayList<Thread> threadPool = new ArrayList<Thread>();
-		  
-		  for(int i=0;i<MAX_THREADS;i++){
-			  Worker worker = new Worker(queue, baseDir);
-			  Thread new_worker = new Thread(worker);
-			  new_worker.start();
-			  threadPool.add(new_worker);
-		  }
-		  
-		  
-		  
-		 
-		 
 		  
 	  }
 	  
