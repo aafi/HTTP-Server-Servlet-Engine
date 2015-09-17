@@ -19,7 +19,13 @@ public class HttpRequest {
 		while(!(line = request.readLine()).trim().equals("")){
 			//Get request line
 			if(lineNumber == 1){
-				String [] parts = line.split(" ");
+				String [] parts = line.split("[ \t]*");
+				
+				//TODO check for well formed request
+				if(parts.length !=3){
+					//throw bad format exception
+				}
+				
 				method = parts[0];
 				uri = parts[1];
 				version = parts[2].split("/")[1];
@@ -30,10 +36,12 @@ public class HttpRequest {
 					headers.put(parts[0].toLowerCase(), parts[1].trim());
 					lineNumber++;
 					prevHeader = parts[0].toLowerCase();
-				}else{ //In case a line is continuation of previous header
+				}else if(line.startsWith("[ \t]*")){ //In case a line is continuation of previous header
 					String value = headers.get(prevHeader);
 					String newValue = value+" "+line.trim();
 					headers.put(prevHeader, newValue);			
+				}else{
+					//Throw bad format exception
 				}
 			}
 		}	
