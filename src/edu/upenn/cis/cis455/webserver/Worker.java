@@ -1,25 +1,33 @@
 package edu.upenn.cis.cis455.webserver;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.Socket;
 import java.util.*;
 
 import org.apache.log4j.Logger;
 
 public class Worker implements Runnable{
-	//private Socket clientSock;
+	/**
+	 * Private fields of the class
+	 */
 	static final Logger logger = Logger.getLogger(HttpServer.class);
 	private final Queue<Socket> requestQueue;
 	private final String baseDir;
 	private BufferedReader input = null;
 	
+	/**
+	 * Constructor
+	 * @param Request queue
+	 * @param Base Directory
+	 */
 	public Worker(Queue<Socket> queue, String baseDir){
 		this.requestQueue = queue;
 		this.baseDir = baseDir;
 	}
 	
+	/**
+	 * Run method for threads
+	 */
 	public void run(){
 		while(true){
 			Socket clientSock = null;
@@ -77,7 +85,12 @@ public class Worker implements Runnable{
 					}
 				}
 				
-				logger.info(response.getMessage());
+				try {
+					response.sendResponse(clientSock);
+				} catch (IOException e) {
+					logger.info("Could not get output stream");
+				}
+				
 				
 				
 			} //end of if(clientSock!=null)
@@ -85,8 +98,10 @@ public class Worker implements Runnable{
 		}
 			  
 	 }
+	
+	
 		
-	}
+}
 	
 
 
