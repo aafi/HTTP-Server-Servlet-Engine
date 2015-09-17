@@ -1,5 +1,6 @@
 package edu.upenn.cis.cis455.webserver;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -18,9 +19,11 @@ public class HttpResponse {
 	private String version;
 	private HashMap <String, String> headers;
 		
+	
 	public HttpResponse(HttpRequest request,String baseDir, Boolean isBadRequest){
 		this.baseDir = baseDir; 
 		this.request = request;
+		
 		//Check for the method
 		if(!request.getMethod().equals("GET") && !request.getMethod().equals("HEAD")){
 			version = "HTTP/"+request.getVersion();
@@ -34,9 +37,18 @@ public class HttpResponse {
 	}
 	
 	private void checkResource(){
+		
 		String resource = Paths.get(baseDir,request.getUri()).normalize().toString();
+		File file = new File(resource);
 		
 		//Check if resource is a file or directory
+		if(!file.exists()){
+			responseCode = 404;
+			message = "Not found";
+		}else if(!file.canRead()){
+			responseCode = 403;
+			message = "Forbidden";
+		}
 		
 		
 		
@@ -46,7 +58,6 @@ public class HttpResponse {
 	//Process 1.1 client requests
 	public void processRequest11(){
 		headers = new HashMap<String, String>();
-		
 		//Inserting appropriate headers in the response
 		headers.put("Date", getDate());
 		headers.put("Connection", "close");

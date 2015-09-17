@@ -15,53 +15,58 @@ class HttpServer {
   
   public static void main(String args[]) throws IOException
   {
-	  // Get the input arguments
-	  int port = Integer.parseInt(args[0]);
-	  String baseDir = args[1];
-	  
-	  //Server code
-	  ServerSocket serverSock = null;
-	  try{
-		  serverSock = new ServerSocket(port);
-	  } catch(IOException e){
-		  logger.error("Could not listen on port: "+port);
-          System.exit(1);
-	  }
-	  
-	  //Queue for incoming requests
-	  Queue <Socket> queue = new LinkedList <Socket>();
-	  
-	  //Create a threadpool
-	  ArrayList<Thread> threadPool = new ArrayList<Thread>();
-	  
-	  for(int i=0;i<MAX_THREADS;i++){
-		  Worker worker = new Worker(queue, baseDir);
-		  Thread new_worker = new Thread(worker);
-		  new_worker.start();
-		  threadPool.add(new_worker);
-	  }
-	  
-	  while(true){
+	  if(args.length==0){
+		  logger.info("Name: Anwesha Das");
+		  logger.info("SEAS login: anwesha");
+	  }else{
+		  // Get the input arguments
+		  int port = Integer.parseInt(args[0]);
+		  String baseDir = args[1];
 		  
-		  Socket clientSock = null;
-		  		  
-		  //Accept client connection
+		  //Server code
+		  ServerSocket serverSock = null;
 		  try{
-			  clientSock = serverSock.accept();
-			  logger.info("Connection accepted");
-		  }catch(IOException e){
-			  logger.error("Could not accept client socket");
-			  System.exit(1);
+			  serverSock = new ServerSocket(port);
+		  } catch(IOException e){
+			  logger.error("Could not listen on port: "+port);
+	          System.exit(1);
 		  }
 		  
-		  //Add request to the queue and notify all waiting threads
-		  synchronized(queue){
-			  queue.add(clientSock);
-			  queue.notifyAll();
+		  //Queue for incoming requests
+		  Queue <Socket> queue = new LinkedList <Socket>();
+		  
+		  //Create a threadpool
+		  ArrayList<Thread> threadPool = new ArrayList<Thread>();
+		  
+		  for(int i=0;i<MAX_THREADS;i++){
+			  Worker worker = new Worker(queue, baseDir);
+			  Thread new_worker = new Thread(worker);
+			  new_worker.start();
+			  threadPool.add(new_worker);
 		  }
 		  
+		  while(true){
+			  
+			  Socket clientSock = null;
+			  		  
+			  //Accept client connection
+			  try{
+				  clientSock = serverSock.accept();
+				  logger.info("Connection accepted");
+			  }catch(IOException e){
+				  logger.error("Could not accept client socket");
+				  System.exit(1);
+			  }
+			  
+			  //Add request to the queue and notify all waiting threads
+			  synchronized(queue){
+				  queue.add(clientSock);
+				  queue.notifyAll();
+			  }
+			  
+		  }
 	  }
 	  
-  }
+  } //end of main
   
 }

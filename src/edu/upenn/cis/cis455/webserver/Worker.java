@@ -77,7 +77,7 @@ public class Worker implements Runnable{
 					}
 				}
 				
-				
+				logger.info(response.getMessage());
 				
 				
 			} //end of if(clientSock!=null)
