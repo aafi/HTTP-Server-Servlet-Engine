@@ -16,6 +16,7 @@ public class HttpResponse {
 	private final String baseDir;
 	private final HttpRequest request;
 	private String resource;
+	private File file;
 	
 	//Response Fields
 	private String statusLine;
@@ -67,7 +68,7 @@ public class HttpResponse {
 	private void checkResource(){
 		
 		resource = Paths.get(baseDir,request.getUri()).normalize().toString();
-		File file = new File(resource);
+		file = new File(resource);
 		
 		//Check if resource is a file or directory
 		if(!file.exists()){
@@ -142,6 +143,14 @@ public class HttpResponse {
 	 * @throws IOException 
 	 */
 	private void sendBody(OutputStream output) throws IOException{
+//		byte [] body = new byte[contents.length];
+//		int bytesRead;
+//		FileInputStream fis = new FileInputStream(file);
+//		while ((bytesRead = fis.read(body)) != -1 ) {
+//		output.write(body, 0, bytesRead);
+//		}
+//		fis.close();
+		
 		output.write(contents);
 	}
 	
