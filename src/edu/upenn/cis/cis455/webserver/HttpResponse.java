@@ -2,6 +2,7 @@ package edu.upenn.cis.cis455.webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -14,12 +15,25 @@ public class HttpResponse {
 	static final Utils util = new Utils();
 	private final String baseDir;
 	private final HttpRequest request;
+	private String resource;
+	
+	//Response Fields
 	private String statusLine;
 	private int responseCode = 0;
 	private String message;
 	private String version;
 	private byte [] contents;
 	private HashMap <String, String> headers;
+	
+	
+	static final String HTML_START =
+			"<html>" +
+			"<title>HTTP Server in java</title>" +
+			"<body>";
+
+	static final String HTML_END =
+			"</body>" +
+			"</html>";
 	
 	/** 
 	 * Constructor
@@ -52,7 +66,7 @@ public class HttpResponse {
 	
 	private void checkResource(){
 		
-		String resource = Paths.get(baseDir,request.getUri()).normalize().toString();
+		resource = Paths.get(baseDir,request.getUri()).normalize().toString();
 		File file = new File(resource);
 		
 		//Check if resource is a file or directory
@@ -62,7 +76,7 @@ public class HttpResponse {
 		}else if(!file.canRead()){
 			responseCode = 403;
 			message = "Forbidden";
-		}else if(file.isFile()){
+		}else if(Files.isReadable(file.toPath())){
 			//Check extension
 			String type = null;
 			if(file.toString().lastIndexOf(".") != -1 && file.toString().lastIndexOf(".") != 0)
@@ -82,7 +96,7 @@ public class HttpResponse {
 					logger.error("File not found");
 				}
 				Integer length = contents.length;
-				headers.put("Content-Length",length.toString());
+				headers.put("Content-Length",length.toString()+"\r\n");
 			}
 		}
 		
@@ -108,7 +122,7 @@ public class HttpResponse {
 			checkResource();
 		}
 		
-		buildResponse();
+		
 	}
 	
 	
@@ -122,23 +136,37 @@ public class HttpResponse {
 		
 	}
 	
-	/** 
-	 * Builds the response to be sent back to the client 
-	 **/
-	private void buildResponse(){
-		statusLine = version+" "+responseCode+" "+message+"\r\n";
-		
+	/**
+	 * Sends the body of HTTP Response incase of GET request
+	 * @param OutputStream
+	 * @throws IOException 
+	 */
+	private void sendBody(OutputStream output) throws IOException{
+		output.write(contents);
 	}
 	
-	
 	/**
-	 * Sends the actual response back to the client
+	 * Sends the HTTP response back to the client
 	 * @param Client Socket
 	 * @throws IOException 
 	 */
 	public void sendResponse(Socket clientSock) throws IOException{
-			
+		statusLine = version+" "+responseCode+" "+message+"\r\n";
 		OutputStream output = clientSock.getOutputStream();
+		output.write(statusLine.getBytes());
+		for(String key: headers.keySet()){
+			output.write((key+": "+headers.get(key)).getBytes());
+		}
+		output.write(("\r\n").getBytes());
+		
+		//Send actual content in case it is GET request
+		if(request.getMethod().equals("GET")){
+			sendBody(output);
+		}
+		output.close();
+		clientSock.close();
+		
+		logger.info("Sent Output");
 			
 			
 	}

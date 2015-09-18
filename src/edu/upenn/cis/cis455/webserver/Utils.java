@@ -48,7 +48,6 @@ public class Utils {
 		FileInputStream fis = new FileInputStream(file);
 		byte [] contents = new byte[(int)file.length()];
 		fis.read(contents);
-		
 		return contents;
 		
 	}
