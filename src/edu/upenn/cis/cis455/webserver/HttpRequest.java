@@ -14,7 +14,7 @@ public class HttpRequest {
 	private String version;
 	private HashMap <String, String> headers;
 	
-	public void parseRequest(BufferedReader request) throws IOException{
+	public boolean parseRequest(BufferedReader request) throws IOException{
 		
 		headers = new HashMap<String, String>();
 		String line, prevHeader = null;
@@ -25,21 +25,20 @@ public class HttpRequest {
 			if(lineNumber == 1){
 				String [] parts = line.split("[ \t]+");
 				
-				//TODO check for well formed request
 				if(parts.length !=3){
-					//throw bad format exception
+					return false;
 				}
 				
 				method = parts[0];
 				uri = parts[1];
 				
 				if(!parts[2].split("/")[0].equals("HTTP")){
-					//throw bad format exception
+					return false;
 				}
 				version = parts[2].split("/")[1];
 				
 				if(!version.equals("1.1") && !version.equals("1.0")){
-					//throw bad format exception
+					return false; 
 				}
 				
 				lineNumber++;
@@ -54,10 +53,11 @@ public class HttpRequest {
 					String newValue = value+" "+line.trim();
 					headers.put(prevHeader, newValue);
 				}else{
-					//Throw bad format exception
+					return false;
 				}
 			}
 		}	
+		return true;
 	}
 
 	public String getMethod() {

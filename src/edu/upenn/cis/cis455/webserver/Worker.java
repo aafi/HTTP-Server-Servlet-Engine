@@ -55,50 +55,80 @@ public class Worker implements Runnable{
 				
 				
 				//Parse request
-				Boolean isBadRequest = false; 
+				Boolean isGoodRequest = true; 
 				HttpRequest request = new HttpRequest();
 				try {
-					request.parseRequest(input);
+					isGoodRequest = request.parseRequest(input);
 				} catch (IOException e) {
 					logger.error("Could not parse request");
-				}//catch (BadFormedException a) {
-				//logger.error("badly formed request");
-				//isBadRequest = true;
-				//}
-				
+				}
 				//Process and send response
-				HttpResponse response = new HttpResponse(request,baseDir,isBadRequest);
+				HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest);
+				OutputStream output = null;
+				try {
+					output = clientSock.getOutputStream();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					logger.error("Could not get output stream");
+				}
 				
 				if(response.getResponseCode() == 0){ 
+					
+					//Process the requests
 					if(request.getVersion().equals("1.1")){
 						//Send 100 continue response
 						String reply = "HTTP/1.1 100 Continue";
 						//sendResponse()
 						response.processRequest11();
-					
-				
-					
 					}else{ 
-						
 						response.processRequest10();
-					
 					}
+					
+					//Send error responses
+					if(response.getResponseCode()!=200){
+						try {
+							//Send the status
+							response.sendStatus(output);
+							output.write("\r\n".getBytes());
+							
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							logger.error("Could not send status");
+						}
+						
+					}else{ //send response in case file can be accessed
+						try {
+							response.sendResponse(output);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							logger.error("Could not send response");
+						}
+					}
+				}else{
+					//Send status
+					try {
+						response.sendStatus(output);
+						output.write("\r\n".getBytes());
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						logger.error("Could not send status");
+					}
+					
 				}
+				
 				
 				try {
-					response.sendResponse(clientSock);
+					clientSock.close();
+					output.close();
 				} catch (IOException e) {
-					logger.info("Could not get output stream");
+					logger.error("Could not close client socket");
 				}
-				
-				
 				
 			} //end of if(clientSock!=null)
 		
 		}
 			  
 	 }
-	
 	
 		
 }

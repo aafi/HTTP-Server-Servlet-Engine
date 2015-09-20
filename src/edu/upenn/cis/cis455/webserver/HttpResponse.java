@@ -1,10 +1,9 @@
 package edu.upenn.cis.cis455.webserver;
 
 import java.io.*;
-import java.net.Socket;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 import org.apache.log4j.Logger;
@@ -26,15 +25,14 @@ public class HttpResponse {
 	private byte [] contents;
 	private HashMap <String, String> headers;
 	
-	
-	static final String HTML_START =
-			"<html>" +
-			"<title>HTTP Server in java</title>" +
-			"<body>";
-
-	static final String HTML_END =
-			"</body>" +
-			"</html>";
+//	static final String HTML_START =
+//			"<html>" +
+//			"<title>HTTP Server in java</title>" +
+//			"<body>";
+//
+//	static final String HTML_END =
+//			"</body>" +
+//			"</html>";
 	
 	/** 
 	 * Constructor
@@ -44,20 +42,22 @@ public class HttpResponse {
 	 * @param HttpRequest to be handled
 	 * @param Base Directory
 	 * @param HttpRequest is a bad request or not
+	 * @param Client Socket
 	 **/
-	public HttpResponse(HttpRequest request,String baseDir, Boolean isBadRequest){
+	public HttpResponse(HttpRequest request,String baseDir, Boolean isGoodRequest){
 		this.baseDir = baseDir; 
 		this.request = request;
 		
 		//Check for the method
-		if(!request.getMethod().equals("GET") && !request.getMethod().equals("HEAD")){
-			version = "HTTP/"+request.getVersion();
-			responseCode = 501;
-			message = "Not Implemented";
-		}else if(isBadRequest){
+		
+		if(!isGoodRequest){
 			version = "HTTP/"+request.getVersion();
 			responseCode = 400;
 			message = "Bad Request";
+		}else if(!request.getMethod().equals("GET") && !request.getMethod().equals("HEAD")){
+			version = "HTTP/"+request.getVersion();
+			responseCode = 501;
+			message = "Not Implemented";
 		}
 	}
 	
@@ -66,17 +66,22 @@ public class HttpResponse {
 	 **/
 	
 	private void checkResource(){
+		logger.info("Requested path: "+request.getUri());
+		Path resourcePath = Paths.get(baseDir,request.getUri()).normalize();
+		logger.info("Resource path: "+resourcePath.toString());
+		Path rootPath = Paths.get(baseDir);
+		logger.info("Root Path: "+rootPath.toString());
 		
-		resource = Paths.get(baseDir,request.getUri()).normalize().toString();
-		file = new File(resource);
+		resource = resourcePath.toString();
+		file = resourcePath.toFile();
 		
 		//Check if resource is a file or directory
-		if(!file.exists()){
-			responseCode = 404;
-			message = "Not found";
-		}else if(!file.canRead()){
+		if(!resourcePath.startsWith(rootPath)){
 			responseCode = 403;
 			message = "Forbidden";
+		}else if(!file.exists()){
+			responseCode = 404;
+			message = "Not Found";
 		}else if(Files.isReadable(file.toPath())){
 			//Check extension
 			String type = null;
@@ -137,19 +142,17 @@ public class HttpResponse {
 		
 	}
 	
+	public void sendStatus(OutputStream output) throws IOException{
+		statusLine = version+" "+responseCode+" "+message+"\r\n";
+		output.write(statusLine.getBytes());
+	}
+	
 	/**
-	 * Sends the body of HTTP Response incase of GET request
+	 * Sends the body of HTTP Response in case of GET request
 	 * @param OutputStream
 	 * @throws IOException 
 	 */
 	private void sendBody(OutputStream output) throws IOException{
-//		byte [] body = new byte[contents.length];
-//		int bytesRead;
-//		FileInputStream fis = new FileInputStream(file);
-//		while ((bytesRead = fis.read(body)) != -1 ) {
-//		output.write(body, 0, bytesRead);
-//		}
-//		fis.close();
 		
 		output.write(contents);
 	}
@@ -159,10 +162,8 @@ public class HttpResponse {
 	 * @param Client Socket
 	 * @throws IOException 
 	 */
-	public void sendResponse(Socket clientSock) throws IOException{
-		statusLine = version+" "+responseCode+" "+message+"\r\n";
-		OutputStream output = clientSock.getOutputStream();
-		output.write(statusLine.getBytes());
+	public void sendResponse(OutputStream output) throws IOException{
+		sendStatus(output);
 		for(String key: headers.keySet()){
 			output.write((key+": "+headers.get(key)).getBytes());
 		}
@@ -172,8 +173,8 @@ public class HttpResponse {
 		if(request.getMethod().equals("GET")){
 			sendBody(output);
 		}
+		
 		output.close();
-		clientSock.close();
 		
 		logger.info("Sent Output");
 			

@@ -43,11 +43,17 @@ public class Utils {
 		return type;
 	}
 	
-	
+	/**
+	 * Gets the contents of the file into a byte array
+	 * @param file
+	 * @return byte array of file contents
+	 * @throws IOException
+	 */
 	public byte [] readResource(File file) throws IOException{
 		FileInputStream fis = new FileInputStream(file);
 		byte [] contents = new byte[(int)file.length()];
 		fis.read(contents);
+		fis.close();
 		return contents;
 		
 	}
