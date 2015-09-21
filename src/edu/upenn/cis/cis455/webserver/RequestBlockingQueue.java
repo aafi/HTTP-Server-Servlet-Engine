@@ -3,12 +3,12 @@ package edu.upenn.cis.cis455.webserver;
 import java.net.Socket;
 import java.util.LinkedList;
 
-public class BlockingQueue {
-	private boolean shutdown;
+public class RequestBlockingQueue {
+	private static boolean shutdown;
 	private LinkedList <Socket> list;
-	private static final int QUEUE_SIZE = 100;
+	private static final int QUEUE_SIZE = 100000;
 	
-	public BlockingQueue(){
+	public RequestBlockingQueue(){
 		list = new LinkedList<Socket>();
 		shutdown = false;
 	}

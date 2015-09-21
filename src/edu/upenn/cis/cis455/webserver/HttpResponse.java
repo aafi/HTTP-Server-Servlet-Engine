@@ -1,6 +1,9 @@
 package edu.upenn.cis.cis455.webserver;
 
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.Socket;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,7 +17,6 @@ public class HttpResponse {
 	static final Utils util = new Utils();
 	private final String baseDir;
 	private final HttpRequest request;
-	private final HttpServer server = new HttpServer();
 	private File file;
 	private final OutputStream output;
 	private boolean isSpecial = false;
@@ -27,6 +29,7 @@ public class HttpResponse {
 	private byte [] contents;
 	private String special;
 	private HashMap <String, String> headers;
+	private Socket clientSock;
 	
 	
 	
@@ -39,11 +42,13 @@ public class HttpResponse {
 	 * @param Base Directory
 	 * @param HttpRequest is a good request or not
 	 * @param Output Stream
+	 * @param Client Socket
 	 **/
-	public HttpResponse(HttpRequest request,String baseDir, Boolean isGoodRequest, OutputStream output){
+	public HttpResponse(HttpRequest request,String baseDir, Boolean isGoodRequest, OutputStream output, Socket clientSock){
 		this.baseDir = baseDir; 
 		this.request = request;
 		this.output = output;
+		this.clientSock = clientSock;
 		
 		if (!isGoodRequest) {
 			version = "HTTP/" + request.getVersion();
@@ -59,54 +64,56 @@ public class HttpResponse {
 	}
 	
 	/** 
-	 * Performs appropriate checks on the requested resource
+	 * Performs checks to see if requested resource is forbidden, not found or special URL
 	 **/
 	
 	private void checkResource(){
+		String requestedResource;
 		logger.info("Requested Uri: "+request.getUri());
-		Path requestedResourcePath = Paths.get(request.getUri());
-		logger.info("Requested resource path: "+requestedResourcePath.toString());
 		
-		Path rootPath = Paths.get(baseDir);
-		logger.info("Root Path: "+rootPath.toString());
-		
-		Path resourcePath;
-		//Handling absolute URLS
-		if(!requestedResourcePath.startsWith(rootPath)){
-			logger.info("Requested URL is not an absolute path");
-			resourcePath = Paths.get(baseDir,request.getUri()).normalize();
-			logger.info("Resource path: "+resourcePath.toString());
-		}else{
-			logger.info("Requested URL is an absolute path");
-			resourcePath = requestedResourcePath;
+		//Check for absolute path
+		try {
+			URL resourceUrl = new URL(request.getUri());
+			requestedResource = resourceUrl.getPath();
+		} catch (MalformedURLException e) {
+			logger.info("Passed URI is not an absolute path");
+			requestedResource = request.getUri();
 		}
 		
-		
+		Path resourcePath = Paths.get(baseDir,requestedResource).normalize();
+		logger.info("Requested resource: "+resourcePath);
+		Path rootPath = Paths.get(baseDir);
+		logger.info("Root path: "+rootPath);
 		file = resourcePath.toFile();
 		
 		if(!resourcePath.startsWith(rootPath)){
+			logger.info("403");
 			responseCode = 403;
 			message = "Forbidden";
-		}else if(!file.exists() || !Files.isReadable(resourcePath)){
+		}else if(!file.exists()){
 			responseCode = 404;
 			message = "Not Found";
+		}else if(!Files.isReadable(resourcePath)){
+			responseCode = 403;
+			message = "Forbidden";
 		}
 		
-		special = request.getUri();
-		// Check if file or directory
-		if (file.isFile()) {
-			serveFile();
-		} else if (file.isDirectory()) {
-			serveDirectory();
-		} else if (special.equals("/control")) {
-			control();
-			isSpecial = true;
-		} else if (special.equals("/shutdown")) {
-			shutdown();
-			isSpecial = true;
+		if(responseCode == 0){
+			special = request.getUri();
+			// Check if file or directory
+			if (file.isFile()) {
+				serveFile();
+			} else if (file.isDirectory()) {
+				serveDirectory();
+			} else if (special.equals("/control")) {
+				control();
+				isSpecial = true;
+			} else if (special.equals("/shutdown")) {
+				shutdown();
+				isSpecial = true;
 
+			}
 		}
-		
 	}
 	
 	/**
@@ -120,9 +127,9 @@ public class HttpResponse {
 		body.append("<br>");
 		body.append(seasId);
 		body.append("<br><br><br><b> THREAD STATUS </b><UL>");
-		body.append(server.threadStatus());
+		body.append(HttpServer.threadStatus());
 		body.append("</UL><br><br><br>");
-		String shutdown = "http://localhost:"+server.getPort()+"/shutdown";
+		String shutdown = "http://localhost:"+HttpServer.getPort()+"/shutdown";
 		String button = "<a href = \""+shutdown+"\"><button>Shut Down</button></a>";
 		body.append(button);
 		contents = util.createHTML("Control Panel", body.toString());
@@ -144,15 +151,20 @@ public class HttpResponse {
 	 * Handling special URL shutdown
 	 */
 	private void shutdown(){
+		logger.info("Hadling shutdown");
 		responseCode = 200;
 		message = "OK";
 		try {
 			sendStatus();
 			output.write("\r\n".getBytes());
+			output.write("Server Shut Down\r\n\r\n".getBytes());
+			clientSock.close();
+			logger.info("Closed client socket requesting shutdown");
 		} catch (IOException e) {
 			logger.error("Could not send status");
 		}
-		server.sendShutDownSignal();
+		HttpServer.exitFlag = true;
+		HttpServer.sendShutDownSignal();
 	}
 	
 	/**
@@ -160,9 +172,13 @@ public class HttpResponse {
 	 */
 	private void serveFile(){
 		//Check extension
-		String type = null;
-		if(file.toString().lastIndexOf(".") != -1 && file.toString().lastIndexOf(".") != 0)
-	        type = util.getType(file.toString().substring(file.toString().lastIndexOf(".")+1));
+		String type = "Not Supported";
+		
+		try {
+			type = Files.probeContentType(file.toPath());
+		} catch (IOException e1) {
+			logger.error("Could not get content type");
+		}
 		
 		//Check if resource type is supported
 		if(type.equals("Not Supported")){

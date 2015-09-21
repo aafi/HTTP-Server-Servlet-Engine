@@ -10,17 +10,18 @@ public class Worker implements Runnable{
 	 * Private fields of the class
 	 */
 	static final Logger logger = Logger.getLogger(HttpServer.class);
-	private final BlockingQueue requestQueue;
+	private final RequestBlockingQueue requestQueue;
 	private final String baseDir;
 	private BufferedReader input = null;
 	private String currentUrl = null;
+	public static boolean shutdownFlag = false;
 	
 	/**
 	 * Constructor
 	 * @param Request queue
 	 * @param Base Directory
 	 */
-	public Worker(BlockingQueue queue, String baseDir){
+	public Worker(RequestBlockingQueue queue, String baseDir){
 		this.requestQueue = queue;
 		this.baseDir = baseDir;
 	}
@@ -30,7 +31,7 @@ public class Worker implements Runnable{
 	 * Run method for threads
 	 */
 	public void run(){
-		while(true){
+		while(!shutdownFlag){
 			Socket clientSock = null;
 			
 			//Wait until there is a request in the Queue
@@ -39,7 +40,7 @@ public class Worker implements Runnable{
 					logger.info("Serving request");
 					clientSock = requestQueue.remove();
 				}else if(requestQueue.isEmpty()){
-					logger.info("Queue is currently empty ");
+					logger.info("Queue is currently empty. Thread is waiting");
 					try {
 						requestQueue.wait();
 					} catch (InterruptedException e) {
@@ -74,7 +75,7 @@ public class Worker implements Runnable{
 				HttpRequest request = new HttpRequest();
 				Boolean isGoodRequest = request.parseRequest(input, output);
 				
-				HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest,output);;
+				HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest,output,clientSock);
 				if(isGoodRequest)
 					currentUrl = request.getUri();
 				else
@@ -146,9 +147,8 @@ public class Worker implements Runnable{
 				}
 				
 			} //end of if(clientSock!=null)
-		
-		}
-			  
+		} // end of while
+		logger.info("While exited");
 	 } // end of run
 	
 	/**
