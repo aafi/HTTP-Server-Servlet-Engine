@@ -2,7 +2,6 @@ package edu.upenn.cis.cis455.webserver;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.*;
 
 import org.apache.log4j.Logger;
 
@@ -11,19 +10,21 @@ public class Worker implements Runnable{
 	 * Private fields of the class
 	 */
 	static final Logger logger = Logger.getLogger(HttpServer.class);
-	private final Queue<Socket> requestQueue;
+	private final BlockingQueue requestQueue;
 	private final String baseDir;
 	private BufferedReader input = null;
+	private String currentUrl = null;
 	
 	/**
 	 * Constructor
 	 * @param Request queue
 	 * @param Base Directory
 	 */
-	public Worker(Queue<Socket> queue, String baseDir){
+	public Worker(BlockingQueue queue, String baseDir){
 		this.requestQueue = queue;
 		this.baseDir = baseDir;
 	}
+	
 	
 	/**
 	 * Run method for threads
@@ -31,15 +32,23 @@ public class Worker implements Runnable{
 	public void run(){
 		while(true){
 			Socket clientSock = null;
+			
+			//Wait until there is a request in the Queue
 			synchronized(requestQueue){
-				if(!requestQueue.isEmpty()){
+				if(!requestQueue.isEmpty() && !requestQueue.isShutdown()){
+					logger.info("Serving request");
 					clientSock = requestQueue.remove();
-				}else{
+				}else if(requestQueue.isEmpty()){
 					logger.info("Queue is currently empty ");
 					try {
 						requestQueue.wait();
 					} catch (InterruptedException e) {
 						logger.error("Interrupted exception");
+					}
+				}else{
+					if(requestQueue.isShutdown()){
+						logger.info("ShutDown has been signalled");
+						break;
 					}
 				}
 			}
@@ -53,61 +62,74 @@ public class Worker implements Runnable{
 					logger.error("Could not read input");
 				}
 				
-				
-				//Parse request
-				Boolean isGoodRequest = true; 
-				HttpRequest request = new HttpRequest();
-				try {
-					isGoodRequest = request.parseRequest(input);
-				} catch (IOException e) {
-					logger.error("Could not parse request");
-				}
-				//Process and send response
-				HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest);
+				//Create output stream for the client
 				OutputStream output = null;
 				try {
 					output = clientSock.getOutputStream();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					logger.error("Could not get output stream");
 				}
 				
-				if(response.getResponseCode() == 0){ 
-					
-					//Process the requests
-					if(request.getVersion().equals("1.1")){
-						//Send 100 continue response
-						String reply = "HTTP/1.1 100 Continue";
-						//sendResponse()
+				//Parse request
+				HttpRequest request = new HttpRequest();
+				Boolean isGoodRequest = request.parseRequest(input, output);
+				
+				HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest,output);;
+				if(isGoodRequest)
+					currentUrl = request.getUri();
+				else
+					currentUrl = "Bad Request";
+				
+				// Send 100 Continue Response
+				if (isGoodRequest && request.getVersion().equals("1.1")) {
+					// Send 100 continue response
+					if (request.getHeaders().containsKey("expect")) {
+						String reply = "HTTP/1.1 100 Continue \r\n";
+
+						try {
+							output.write(reply.getBytes());
+							output.write("\r\n".getBytes());
+						} catch (IOException e) {
+							logger.error("Could not send 100 Continue response");
+						}
+
+					}
+				}
+
+				// Process and send response
+				if (response.getResponseCode() == 0) {
+
+					// Process the requests
+					if (request.getVersion().equals("1.1")) {
 						response.processRequest11();
-					}else{ 
+					} else {
 						response.processRequest10();
 					}
 					
-					//Send error responses
-					if(response.getResponseCode()!=200){
-						try {
-							//Send the status
-							response.sendStatus(output);
-							output.write("\r\n".getBytes());
-							
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							logger.error("Could not send status");
+					if(!response.isSpecial()){
+						// Send error responses
+						if (response.getResponseCode() != 200) { //In case of 404 NOT FOUND
+							try {
+								// Send the status
+								response.sendStatus();
+								output.write("\r\n".getBytes());
+							} catch (IOException e) {
+								logger.error("Could not send status");
+							}
+
+						} else { // send response in case file can be accessed
+							try {
+								response.sendResponse();
+							} catch (IOException e) {
+								logger.error("Could not send response");
+							}
 						}
-						
-					}else{ //send response in case file can be accessed
-						try {
-							response.sendResponse(output);
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							logger.error("Could not send response");
-						}
-					}
-				}else{
-					//Send status
+					} //end of if(!isSpecial())
+					
+				} else {
+					// Send status
 					try {
-						response.sendStatus(output);
+						response.sendStatus();
 						output.write("\r\n".getBytes());
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
@@ -115,7 +137,6 @@ public class Worker implements Runnable{
 					}
 					
 				}
-				
 				
 				try {
 					clientSock.close();
@@ -128,9 +149,14 @@ public class Worker implements Runnable{
 		
 		}
 			  
-	 }
+	 } // end of run
 	
-		
+	/**
+	 * @return Current URl the thread is working on
+	 */
+	public String currentUrl(){
+		return currentUrl;
+	}
 }
 	
 
