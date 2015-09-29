@@ -91,6 +91,7 @@ public class HttpResponse {
 			responseCode = 403;
 			message = "Forbidden";
 		}else if(!file.exists()){
+			logger.info("404");
 			responseCode = 404;
 			message = "Not Found";
 		}else if(!Files.isReadable(resourcePath)){
@@ -98,8 +99,9 @@ public class HttpResponse {
 			message = "Forbidden";
 		}
 		
-		if(responseCode == 0){
-			special = request.getUri();
+		special = request.getUri();
+		logger.info("special = "+special);
+		if(special.equals("/control") || special.equals("/shutdown") || responseCode == 0){
 			// Check if file or directory
 			if (file.isFile()) {
 				serveFile();
@@ -220,7 +222,7 @@ public class HttpResponse {
 			StringBuilder listing = new StringBuilder();
 			File [] listFiles = file.listFiles();
 			for(File name : listFiles){
-				String link = "<a href=\""+name.toPath()+"\">"+name.toString()+"</a>";
+				String link = "<a href=\""+Paths.get(request.getUri(),name.toPath().getFileName().toString())+"\">"+name.toString()+"</a>";
 				listing.append(link);
 				listing.append("<br>");
 			}
