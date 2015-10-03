@@ -8,21 +8,16 @@
      
      <servlet>
          <servlet-name>TestServlet</servlet-name>
-         <servlet-class>edu.upenn.cis.cis455.webserver.TestServlet</servlet-class>
+         <servlet-class>edu.upenn.cis455.TestServlet</servlet-class>
      </servlet>
 
      <servlet-mapping>
          <servlet-name>TestServlet</servlet-name>
-         <url-pattern>/test/*</url-pattern>
+         <url-pattern>test/*</url-pattern>
      </servlet-mapping>
      
      <servlet-mapping>
          <servlet-name>default</servlet-name>
          <url-pattern>*.html</url-pattern>
-     </servlet-mapping>
-     
-     <servlet-mapping>
-         <servlet-name>TestServlet</servlet-name>
-         <url-pattern>/test/abc/*</url-pattern>
      </servlet-mapping>
 </web-app>

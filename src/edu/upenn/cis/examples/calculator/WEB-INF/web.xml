@@ -7,22 +7,17 @@
      <display-name>Test servlet for CIS455</display-name>
      
      <servlet>
-         <servlet-name>TestServlet</servlet-name>
-         <servlet-class>edu.upenn.cis.cis455.webserver.TestServlet</servlet-class>
+         <servlet-name>CalculatorServlet</servlet-name>
+         <servlet-class>edu.upenn.cis.cis455.CalculatorServlet</servlet-class>
      </servlet>
 
      <servlet-mapping>
-         <servlet-name>TestServlet</servlet-name>
-         <url-pattern>/test/*</url-pattern>
+         <servlet-name>CalculatorServlet</servlet-name>
+         <url-pattern>calculate/*</url-pattern>
      </servlet-mapping>
      
      <servlet-mapping>
          <servlet-name>default</servlet-name>
          <url-pattern>*.html</url-pattern>
-     </servlet-mapping>
-     
-     <servlet-mapping>
-         <servlet-name>TestServlet</servlet-name>
-         <url-pattern>/test/abc/*</url-pattern>
      </servlet-mapping>
 </web-app>

@@ -1,0 +1,23 @@
+<project name="myservlet" default="war" basedir="./">
+  <target name="init">
+    <mkdir dir="WEB-INF/classes"/>
+  </target>
+  
+  <target name="compile" depends="init">
+    <javac srcdir="src" destdir="WEB-INF/classes" includes="*.java" 
+     debug="true" includeantruntime="false" classpath="servlet-api.jar"/>
+  </target>
+  
+  <target name="war" depends="compile">
+    <jar destfile="testservlet.war">
+      <fileset dir="." includes="WEB-INF/classes/**/*.class"/>
+      <fileset dir="." includes="WEB-INF/*.xml"/>
+      <fileset dir="." includes="*.html"/>
+    </jar>
+  </target>
+
+  <target name="clean">
+    <delete dir="WEB-INF/classes"/>
+    <delete file="testservlet.war"/>
+  </target>
+</project>

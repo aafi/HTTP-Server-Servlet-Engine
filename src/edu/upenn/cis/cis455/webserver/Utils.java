@@ -47,7 +47,6 @@ public class Utils {
 			}
 		}
 		
-		logger.info("Got date");
 		Date last = new Date(lastMod);
 		dateFormat.format(last);
 		logger.info("Date passed is: "+header);

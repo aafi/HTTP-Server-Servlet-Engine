@@ -5,7 +5,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 
+import javax.servlet.http.HttpServlet;
+
 import org.apache.log4j.Logger;
+
+import edu.upenn.cis.cis455.webserver.TestHarness.Handler;
 
 class HttpServer {
 	
@@ -14,7 +18,7 @@ class HttpServer {
   private static int port;
   private static ArrayList<ThreadpoolThread> threadPool;
   private static RequestBlockingQueue queue;
-  private static ServerSocket serverSock;
+  public static ServerSocket serverSock;
   public static boolean exitFlag = false;
   
   public static void main(String args[])
@@ -22,7 +26,7 @@ class HttpServer {
 	  if(args.length==0){
 		  logger.info("Name: Anwesha Das");
 		  logger.info("SEAS login: anwesha");
-	  }else if(args.length == 2){
+	  }else if(args.length == 3){
 		  // Get the input arguments
 		  
 		  try{
@@ -37,6 +41,19 @@ class HttpServer {
 		  if(!rootDir.exists() && !rootDir.isDirectory()){
 			  logger.info("Not valid root directory. Could not start Server");
 			  System.exit(1);
+		  }
+		  
+		  File webxml = new File(args[2]);
+		  if(!webxml.exists()){
+			  logger.info(args[2]+" does not exist. Could not start Server");
+			  System.exit(1);
+		  }
+		  
+		  //Create url and servlet mappings
+		  try {
+			ParseWebXml.parseXml(args[2]);
+		  } catch (Exception e1) {
+			logger.error("Could not parse the XML file " + e1);
 		  }
 		  
 		  serverSock = null;

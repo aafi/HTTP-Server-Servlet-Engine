@@ -14,6 +14,7 @@ public class HttpRequest {
 	private String uri;
 	private String version = "1.1";
 	private HashMap <String, String> headers;
+	public static String response_body = null;
 	
 	/**
 	 * Parses the HTTP request
@@ -42,15 +43,23 @@ public class HttpRequest {
 				
 				lineNumber++;
 			}else{ //Get request headers
-				logger.info("In headers condition");
 				if(line.contains(":\t") || line.contains(": ")){ //The line contains a header
 					String [] parts = line.split(":[ \t]");
-					headers.put(parts[0].toLowerCase(), parts[1].trim());
+					
+					if(!headers.containsKey(parts[0].toLowerCase())){
+						headers.put(parts[0].toLowerCase(), parts[1].trim()+"\t");
+					}else {
+						StringBuffer sb = new StringBuffer();
+						sb.append(headers.get(parts[0].toLowerCase().split("\t")[0]).trim());
+						sb.append("\t");
+						sb.append(parts[1].trim());
+						headers.put(parts[0].toLowerCase(), sb.toString());
+					}
 					lineNumber++;
 					prevHeader = parts[0].toLowerCase();
 				}else if(line.startsWith(" ") || line.startsWith("\t")){ //In case a line is continuation of previous header
 					String value = headers.get(prevHeader);
-					String newValue = value+" "+line.trim();
+					String newValue = value+"\t"+line.trim();
 					headers.put(prevHeader, newValue);
 				}else{
 					logger.error("Badly formed headers");
@@ -65,6 +74,31 @@ public class HttpRequest {
 			}
 			
 		} //end of while
+		
+		//Storing the request body
+		
+		if(this.method.equals("POST") && this.headers.containsKey("content-length")){
+			StringBuffer body = new StringBuffer();
+			
+			try {
+				line = request.readLine();
+			} catch (IOException e) {
+				logger.error("Could not get next line of request");
+			}
+			
+			while(line!=null && !line.equals("")){
+				body.append(line);
+				
+				try{
+					line = request.readLine();
+				}catch(IOException e){
+					logger.info("Could not get next line of request");
+				}
+			}
+			
+			this.response_body = body.toString();
+			
+		}
 		
 		return true;
 	}

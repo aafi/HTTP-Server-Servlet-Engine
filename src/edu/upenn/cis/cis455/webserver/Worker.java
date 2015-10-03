@@ -1,7 +1,13 @@
 package edu.upenn.cis.cis455.webserver;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.Socket;
+import java.net.URL;
+import java.util.regex.Pattern;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
 
 import org.apache.log4j.Logger;
 
@@ -75,80 +81,132 @@ public class Worker implements Runnable{
 				HttpRequest request = new HttpRequest();
 				Boolean isGoodRequest = request.parseRequest(input, output);
 				
-				HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest,output,clientSock);
-				if(isGoodRequest)
-					currentUrl = request.getUri();
-				else
-					currentUrl = "Bad Request";
+				String requestedResource;
 				
-				// Send 100 Continue Response
-				if (isGoodRequest && request.getVersion().equals("1.1")) {
-					// Send 100 continue response
-					if (request.getHeaders().containsKey("expect")) {
-						String reply = "HTTP/1.1 100 Continue \r\n";
-
-						try {
-							output.write(reply.getBytes());
-							output.write("\r\n".getBytes());
-						} catch (IOException e) {
-							logger.error("Could not send 100 Continue response");
-						}
-
-					}
+				//Check for absolute path
+				try {
+					URL resourceUrl = new URL(request.getUri());
+					requestedResource = resourceUrl.getPath();
+				} catch (MalformedURLException e) {
+					logger.info("Passed URI is not an absolute path");
+					requestedResource = request.getUri();
 				}
-
-				// Process and send response
-				if (response.getResponseCode() == 0) {
-
-					// Process the requests
-					if (request.getVersion().equals("1.1")) {
-						response.processRequest11();
-					} else {
-						response.processRequest10();
+				
+				/** CHECK URL PATTERN WITH REQUEST PATH ***/
+				boolean isServletRequest = false;
+				String url_match = null;
+				int max_len = 0;
+				
+				for(String url : ParseWebXml.urls.keySet()){
+					logger.info(url);
+					String temp_url = null;
+					if(url.endsWith("/*")){
+						temp_url = url;
+						url = url.replace("/*", "");
 					}
 					
-					if(!response.isSpecial()){
-						// Send error responses
-						if (response.getResponseCode() != 200) { //In case of 404 NOT FOUND
+					logger.info("RR: "+requestedResource);
+					if(!requestedResource.startsWith("/")){
+						requestedResource = "/"+requestedResource;
+					}
+					if(requestedResource.startsWith(url)){
+						if(url.length() > max_len){
+							isServletRequest = true;
+							url_match = temp_url;
+							max_len = url.length();
+						}
+					}
+				}
+				
+				
+				logger.info(isServletRequest);
+				//Check if servlet request
+				if(isServletRequest){
+					HttpServlet servlet;
+					servlet = ParseWebXml.servlets.get(ParseWebXml.urls.get(url_match));
+					
+					ServletRequest servletRequest = new ServletRequest(request,clientSock, url_match);
+					ServletResponse servletResponse = new ServletResponse(clientSock);
+					try {
+						servlet.service(servletRequest, servletResponse);
+					} catch (ServletException | IOException e) {
+						logger.error("could not service");
+					}
+					
+				}else{ //Normal Static Request
+					HttpResponse response = new HttpResponse(request,baseDir,isGoodRequest,output,clientSock);
+					if(isGoodRequest)
+						currentUrl = request.getUri();
+					else
+						currentUrl = "Bad Request";
+					
+					// Send 100 Continue Response
+					if (isGoodRequest && request.getVersion().equals("1.1")) {
+						// Send 100 continue response
+						if (request.getHeaders().containsKey("expect")) {
+							String reply = "HTTP/1.1 100 Continue \r\n";
+
 							try {
-								// Send the status
-								response.sendStatus();
+								output.write(reply.getBytes());
 								output.write("\r\n".getBytes());
 							} catch (IOException e) {
-								logger.error("Could not send status");
+								logger.error("Could not send 100 Continue response");
 							}
 
-						} else { // send response in case file can be accessed
-							try {
-								response.sendResponse();
-							} catch (IOException e) {
-								logger.error("Could not send response");
-							}
 						}
-					} //end of if(!isSpecial())
-					
-				} else {
-					// Send status
-					try {
-						response.sendStatus();
-						output.write("\r\n".getBytes());
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						logger.error("Could not send status");
+					}
+
+					// Process and send response
+					if (response.getResponseCode() == 0) {
+
+						// Process the requests
+						if (request.getVersion().equals("1.1")) {
+							response.processRequest11();
+						} else {
+							response.processRequest10();
+						}
+						
+						if(!response.isSpecial()){
+							// Send error responses
+							if (response.getResponseCode() != 200) { //In case of 404 NOT FOUND
+								try {
+									// Send the status
+									response.sendStatus();
+									output.write("\r\n".getBytes());
+								} catch (IOException e) {
+									logger.error("Could not send status");
+								}
+
+							} else { // send response in case file can be accessed
+								try {
+									response.sendResponse();
+								} catch (IOException e) {
+									logger.error("Could not send response");
+								}
+							}
+						} //end of if(!isSpecial())
+						
+					} else {
+						// Send status
+						try {
+							response.sendStatus();
+							output.write("\r\n".getBytes());
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							logger.error("Could not send status");
+						}
+						
 					}
 					
-				}
-				
-				try {
-					clientSock.close();
-					output.close();
-				} catch (IOException e) {
-					logger.error("Could not close client socket");
-				}
-				
+					try {
+						clientSock.close();
+						output.close();
+					} catch (IOException e) {
+						logger.error("Could not close client socket");
+					}
+				} // End of processing normal static request
 			} //end of if(clientSock!=null)
 		} // end of while
-		logger.info("While exited");
 	 } // end of run
 	
 	/**

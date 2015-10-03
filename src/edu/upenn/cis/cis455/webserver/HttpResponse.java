@@ -68,8 +68,9 @@ public class HttpResponse {
 	 **/
 	
 	private void checkResource(){
-		String requestedResource;
 		logger.info("Requested Uri: "+request.getUri());
+		
+		String requestedResource;
 		
 		//Check for absolute path
 		try {
@@ -241,7 +242,7 @@ public class HttpResponse {
 		//Check if file has been modified
 		if(request.getMethod().equals("GET")){
 			if(request.getHeaders().containsKey("if-modified-since")){
-				String date = request.getHeaders().get("if-modified-since");
+				String date = request.getHeaders().get("if-modified-since").split("\t")[0];
 				long lastMod = file.lastModified();
 				int ret = util.compareDates(date, lastMod);
 				if(ret == 0){
@@ -253,7 +254,7 @@ public class HttpResponse {
 				}
 			}
 		}else if(request.getHeaders().containsKey("if-unmodified-since")){
-			String date = request.getHeaders().get("if-unmodified-since");
+			String date = request.getHeaders().get("if-unmodified-since").split("\t")[0];
 			logger.info("Date passed: "+date);
 			long lastMod = file.lastModified();
 			int ret = util.compareDates(date, lastMod);
