@@ -118,7 +118,7 @@ public class Utils {
 	 * @param body
 	 * @return byte array of HTML page
 	 */
-	public byte [] createHTML(String title, String body){
+	public static String createHTML(String title, String body){
 		String start =
 				"<html>" +
 				"<title>"+title+"</title>" +
@@ -134,8 +134,27 @@ public class Utils {
 		page.append(body);
 		page.append(end);
 		
-		return page.toString().getBytes();
+		return page.toString();
 		
 		
 	}
+	
+	public static String getStatusMessage(int status){
+		switch(status){
+		case 100: return "Continue";
+		case 200: return "OK";
+		case 501: return "Not Implemented";
+		case 400: return "Bad Request";
+		case 403: return "Forbidden";
+		case 404: return "Not Found";
+		case 304: return "Not Modified";
+		case 412: return "Precondition Faied";
+		case 300: return "Redirected";
+		case 405: return "Method Not Allowed";
+		case 500: return "Internal Error";
+		}
+		
+		return null;
+	}
+	
 }

@@ -106,9 +106,7 @@ public class Worker implements Runnable{
 					}
 					
 					logger.info("RR: "+requestedResource);
-					if(!requestedResource.startsWith("/")){
-						requestedResource = "/"+requestedResource;
-					}
+					
 					if(requestedResource.startsWith(url)){
 						if(url.length() > max_len){
 							isServletRequest = true;
@@ -125,7 +123,8 @@ public class Worker implements Runnable{
 					HttpServlet servlet;
 					servlet = ParseWebXml.servlets.get(ParseWebXml.urls.get(url_match));
 					
-					ServletRequest servletRequest = new ServletRequest(request,clientSock, url_match);
+					Session session = null;
+					ServletRequest servletRequest = new ServletRequest(request,clientSock, url_match, session);
 					ServletResponse servletResponse = new ServletResponse(clientSock);
 					try {
 						servlet.service(servletRequest, servletResponse);

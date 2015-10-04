@@ -77,29 +77,23 @@ public class HttpRequest {
 		
 		//Storing the request body
 		
-		if(this.method.equals("POST") && this.headers.containsKey("content-length")){
-			StringBuffer body = new StringBuffer();
+		if(this.method.equals("POST") && this.headers.containsKey("content-length") && this.headers.containsKey("content-type")){
+			int length = Integer.parseInt(this.headers.get("content-length").split("\t")[0]);
+			
+			char [] cbuf = new char [length];
+			int bytes_read = 0;
 			
 			try {
-				line = request.readLine();
+				bytes_read = request.read(cbuf);
 			} catch (IOException e) {
-				logger.error("Could not get next line of request");
+				logger.error("Could not read request");
 			}
 			
-			while(line!=null && !line.equals("")){
-				body.append(line);
-				
-				try{
-					line = request.readLine();
-				}catch(IOException e){
-					logger.info("Could not get next line of request");
-				}
-			}
+			if(bytes_read > 0)
+				this.response_body = new String(cbuf);
 			
-			this.response_body = body.toString();
-			
+			logger.info("RESPONSE BODY IN HTTP REQUEST: "+response_body);
 		}
-		
 		return true;
 	}
 	

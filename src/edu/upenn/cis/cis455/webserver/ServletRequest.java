@@ -34,14 +34,14 @@ import org.apache.log4j.Logger;
 class ServletRequest implements HttpServletRequest {
 	
 	static final Logger logger = Logger.getLogger(HttpServer.class);
-	private Properties m_params = new Properties();
+	private HashMap <String,String> m_params = new HashMap<String,String>();
 	private Properties m_props = new Properties();
 	private Session m_session = null;
 	private String char_encoding = "ISO-8859-1";
 	
 	private String m_method;
-	private String uri;
-	private String version = "1.1";
+	public static String uri;
+	public static String version = "1.1";
 	private HashMap<String, String> headers;
 	private Socket clientSock;
 	private ArrayList<Cookie> cookies;
@@ -51,19 +51,70 @@ class ServletRequest implements HttpServletRequest {
 	ServletRequest() {
 	}
 
-	ServletRequest(HttpRequest request, Socket clientSock, String url_match) {
+	ServletRequest(HttpRequest request, Socket clientSock, String url_match, Session session) {
 		this.m_method = request.getMethod();
 		this.uri = request.getUri();
 		this.version = request.getVersion();
 		this.headers = request.getHeaders();
 		this.clientSock = clientSock;
+		this.m_session = session;
 		parseResource(url_match);
-
+		populateParameters();
+		parseCookies();
+	}
+	
+	private void parseCookies() {
+		cookies = new ArrayList <Cookie>();
+		if(this.headers.containsKey("cookie")){
+			String[] cookies = this.headers.get("cookie").split(";");
+			for(String cookie : cookies){
+				String name = cookie.split("=")[0].trim();
+				String value = cookie.split("=")[1].trim();
+				Cookie newCookie = new Cookie(name,value);
+				this.cookies.add(newCookie);
+			}
+			
+		}
 	}
 
-	ServletRequest(Session session) {
-		m_session = session;
+	private void populateParameters() {
+		if(m_method.equals("GET")){
+			URL requestUrl;
+			String query = null;
+			
+			try {
+				requestUrl = new URL(this.uri);
+				query = requestUrl.getQuery();
+			} catch (MalformedURLException e) {
+				if(uri.contains("?"))
+					query = uri.split("?")[1];
+			}
+			
+			if(query!= null)
+				parseParameters(query);
+			
+		}else if(m_method.equals("POST")){
+			parseParameters(HttpRequest.response_body);
+		}
 	}
+
+	private void parseParameters(String query) {
+		String [] parameters = query.split("&");
+		for(String param : parameters){
+			String[] temp = param.split("=");
+			
+			if(!this.m_params.containsKey(temp[0]))
+				this.m_params.put(temp[0], temp[1]);
+			else{
+				StringBuilder sb = new StringBuilder();
+				sb.append(this.m_params.get(temp[0]));
+				sb.append(",");
+				sb.append(temp[1]);
+				this.m_params.put(temp[0], sb.toString());
+			}
+		}
+	}
+
 	
 	private void parseResource(String url_match){
 		URL requestUrl;
@@ -115,10 +166,15 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.http.HttpServletRequest#getCookies()
 	 */
 	public Cookie[] getCookies() {
-		if(cookies.toArray().length!=0)
-			return (Cookie[]) cookies.toArray();
-		else
-			return null;
+		if(!cookies.isEmpty()){
+			Cookie [] cookie = new Cookie[cookies.toArray().length];
+			for(int i=0;i<cookie.length;i++)
+				cookie[i] = cookies.get(i);
+			
+			return cookie;
+		}
+		
+		return null;
 	}
 
 	/*
@@ -356,7 +412,8 @@ class ServletRequest implements HttpServletRequest {
 	public HttpSession getSession(boolean arg0) {
 		if (arg0) {
 			if (!hasSession()) {
-				m_session = new Session();
+				String id = java.util.UUID.randomUUID().toString();
+				m_session = new Session(id);
 			}
 		} else {
 			if (!hasSession()) {
@@ -489,7 +546,6 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.ServletRequest#getInputStream()
 	 */
 	public ServletInputStream getInputStream() throws IOException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -500,7 +556,7 @@ class ServletRequest implements HttpServletRequest {
 	 */
 	public String getParameter(String arg0) {
 		if(m_params.containsKey(arg0))
-			return m_params.getProperty(arg0);
+			return m_params.get(arg0);
 		else
 			return null;
 	}
@@ -522,12 +578,17 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.ServletRequest#getParameterValues(java.lang.String)
 	 */
 	
-	//TODO
 	public String[] getParameterValues(String arg0) {
 		if(!m_params.containsKey(arg0))
 			return null;
 		else{
-			return null;
+			ArrayList<String> list = new ArrayList<String>();
+			String [] values = m_params.get(arg0).split(",");
+			for(String value : values){
+				list.add(value);
+			}
+			return (String[]) list.toArray();
+			
 		}
 	}
 
@@ -622,8 +683,7 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.ServletRequest#getRemoteHost()
 	 */
 	public String getRemoteHost() {
-		// TODO Auto-generated method stub
-		return null;
+		return clientSock.getInetAddress().getHostName();
 	}
 
 	/*
@@ -678,7 +738,6 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.ServletRequest#getRequestDispatcher(java.lang.String)
 	 */
 	public RequestDispatcher getRequestDispatcher(String arg0) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -732,7 +791,7 @@ class ServletRequest implements HttpServletRequest {
 	}
 
 	void setParameter(String key, String value) {
-		m_params.setProperty(key, value);
+		m_params.put(key, value);
 	}
 
 	void clearParameters() {

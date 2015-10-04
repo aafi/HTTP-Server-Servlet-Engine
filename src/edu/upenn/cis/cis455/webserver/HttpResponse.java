@@ -135,7 +135,7 @@ public class HttpResponse {
 		String shutdown = "http://localhost:"+HttpServer.getPort()+"/shutdown";
 		String button = "<a href = \""+shutdown+"\"><button>Shut Down</button></a>";
 		body.append(button);
-		contents = util.createHTML("Control Panel", body.toString());
+		contents = util.createHTML("Control Panel", body.toString()).getBytes();
 		
 		headers.put("Content-Type: ","text/html \r\n");
 		Integer length = contents.length;
@@ -228,7 +228,7 @@ public class HttpResponse {
 				listing.append("<br>");
 			}
 			
-			contents = util.createHTML(file.toString()+" Listing", listing.toString());
+			contents = util.createHTML(file.toString()+" Listing", listing.toString()).getBytes();
 			Integer length = contents.length;
 			headers.put("Content-Length",length.toString()+"\r\n");
 		}

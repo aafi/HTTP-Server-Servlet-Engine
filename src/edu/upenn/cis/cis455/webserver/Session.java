@@ -11,20 +11,26 @@ import javax.servlet.http.HttpSessionContext;
  */
 class Session implements HttpSession {
 
+	private long creationTime;
+	private String id;
+	
+	public Session(String id){
+		creationTime = System.currentTimeMillis();
+		this.id = id;
+	}
+	
 	/* (non-Javadoc)
 	 * @see javax.servlet.http.HttpSession#getCreationTime()
 	 */
 	public long getCreationTime() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.creationTime;
 	}
 
 	/* (non-Javadoc)
 	 * @see javax.servlet.http.HttpSession#getId()
 	 */
 	public String getId() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.id;
 	}
 
 	/* (non-Javadoc)

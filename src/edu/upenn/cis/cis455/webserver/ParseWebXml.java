@@ -138,6 +138,9 @@ public class ParseWebXml {
 				m_paramName = null;
 				m_state = 0;
 			} else if (m_state == 7){
+				if(!value.startsWith("/")){
+					value = "/"+value;
+				}
 				m_urls.put(value, serv_name);
 				m_state = 0;
 			} else if (m_state == 6){
