@@ -16,15 +16,15 @@ public class ParseWebXml {
 	static final Logger logger = Logger.getLogger(HttpServer.class);
 	public static HashMap<String,HttpServlet> servlets;
 	public static HashMap<String,String> urls;
+	public static String display_name;
 	
 	public static void parseXml(String xml) throws Exception{
 		Handler h;
 		h = parseWebdotxml(xml);
+		display_name = h.display_name;
 		Context context = createContext(h);
 		servlets = createServlets(h, context);
 		urls = createUrlMappings(h);
-		
-		
 	}
 	
 	private static Handler parseWebdotxml(String webdotxml) throws Exception {
@@ -62,6 +62,7 @@ public class ParseWebXml {
 				}
 			}
 			servlet.init(config);
+			logger.info("Servlet created name: "+servletName);
 			servlets.put(servletName, servlet);
 		}
 		return servlets;
@@ -81,6 +82,7 @@ public class ParseWebXml {
 		HashMap<String,String> m_urls = new HashMap<String,String>();
 		HashMap<String,String> m_contextParams = new HashMap<String,String>();
 		HashMap<String,HashMap<String,String>> m_servletParams = new HashMap<String,HashMap<String,String>>();
+		public String display_name;
 
 		public void startElement(String uri, String localName, String qName, Attributes attributes) {
 			if (qName.compareTo("servlet-name") == 0) {
@@ -103,6 +105,8 @@ public class ParseWebXml {
 			}else if(qName.compareTo("url-pattern")== 0){
 				if(m_state == 6)
 					m_state = 7;
+			}else if(qName.compareTo("display-name")==0){
+				m_state = 30;
 			}
 		}
 		
@@ -147,6 +151,9 @@ public class ParseWebXml {
 				serv_name = value;
 			} else if (m_state == 5){
 				
+			} else if(m_state == 30){
+				this.display_name = value;
+				m_state = 0;
 			}
 		}
 	}

@@ -82,14 +82,17 @@ public class Worker implements Runnable{
 				Boolean isGoodRequest = request.parseRequest(input, output);
 				
 				String requestedResource;
-				
+				logger.info("URI PASSED: "+request.getUri());
 				//Check for absolute path
 				try {
 					URL resourceUrl = new URL(request.getUri());
 					requestedResource = resourceUrl.getPath();
 				} catch (MalformedURLException e) {
 					logger.info("Passed URI is not an absolute path");
-					requestedResource = request.getUri();
+					if(request.getUri().contains("?")){
+						requestedResource = request.getUri().split("\\?")[0];
+					}else
+						requestedResource = request.getUri();
 				}
 				
 				/** CHECK URL PATTERN WITH REQUEST PATH ***/
@@ -98,31 +101,35 @@ public class Worker implements Runnable{
 				int max_len = 0;
 				
 				for(String url : ParseWebXml.urls.keySet()){
-					logger.info(url);
 					String temp_url = null;
+					logger.info("URL: "+url);
 					if(url.endsWith("/*")){
 						temp_url = url;
 						url = url.replace("/*", "");
+					}else{
+						temp_url = url;
 					}
-					
+					logger.info("Checking against URL: "+url);
 					logger.info("RR: "+requestedResource);
 					
-					if(requestedResource.startsWith(url)){
+					
+					if(requestedResource.startsWith(url+"/") || requestedResource.equals(url)){
 						if(url.length() > max_len){
 							isServletRequest = true;
 							url_match = temp_url;
 							max_len = url.length();
+							
 						}
 					}
 				}
 				
 				
 				logger.info(isServletRequest);
+				logger.info("URL MATCH: "+url_match);
 				//Check if servlet request
 				if(isServletRequest){
 					HttpServlet servlet;
 					servlet = ParseWebXml.servlets.get(ParseWebXml.urls.get(url_match));
-					
 					Session session = null;
 					ServletRequest servletRequest = new ServletRequest(request,clientSock, url_match, session);
 					ServletResponse servletResponse = new ServletResponse(clientSock);

@@ -1,11 +1,20 @@
 package edu.upenn.cis.cis455.webserver;
 import javax.servlet.*;
+
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
  * @author Nick Taylor
  */
 class Context implements ServletContext {
+	
+	static final Logger logger = Logger.getLogger(HttpServer.class);
 	private HashMap<String,Object> attributes;
 	private HashMap<String,String> initParams;
 	
@@ -15,6 +24,8 @@ class Context implements ServletContext {
 	}
 	
 	public Object getAttribute(String name) {
+		if(!attributes.containsKey(name))
+			return null;
 		return attributes.get(name);
 	}
 	
@@ -25,14 +36,19 @@ class Context implements ServletContext {
 	}
 	
 	public ServletContext getContext(String name) {
-		return null;
+		return this;
 	}
 	
 	public String getInitParameter(String name) {
+		if(!initParams.containsKey(name))
+			return null;
 		return initParams.get(name);
 	}
 	
 	public Enumeration getInitParameterNames() {
+		if(initParams.isEmpty())
+			return Collections.emptyEnumeration();
+
 		Set<String> keys = initParams.keySet();
 		Vector<String> atts = new Vector<String>(keys);
 		return atts.elements();
@@ -54,6 +70,7 @@ class Context implements ServletContext {
 		return null;
 	}
 	
+	//TODO
 	public String getRealPath(String path) {
 		return null;
 	}
@@ -74,6 +91,7 @@ class Context implements ServletContext {
 		return null;
 	}
 	
+	//TODO
 	public String getServerInfo() {
 		return "Test Harness";
 	}
@@ -83,7 +101,7 @@ class Context implements ServletContext {
 	}
 	
 	public String getServletContextName() {
-		return "Test Harness";
+		return ParseWebXml.display_name;
 	}
 	
 	public Enumeration getServletNames() {
@@ -95,16 +113,15 @@ class Context implements ServletContext {
 	}
 	
 	public void log(Exception exception, String msg) {
-		log(msg, (Throwable) exception);
+		return;
 	}
 	
 	public void log(String msg) {
-		System.err.println(msg);
+		return;
 	}
 	
 	public void log(String message, Throwable throwable) {
-		System.err.println(message);
-		throwable.printStackTrace(System.err);
+		return;
 	}
 	
 	public void removeAttribute(String name) {

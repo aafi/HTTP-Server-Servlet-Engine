@@ -20,6 +20,7 @@ class HttpServer {
   private static RequestBlockingQueue queue;
   public static ServerSocket serverSock;
   public static boolean exitFlag = false;
+  private static ValidSession valid_session;
   
   public static void main(String args[])
   {
@@ -78,8 +79,12 @@ class HttpServer {
 			  
 		  }
 		  
+		  //Spawning new thread to check validity of each session
+		  valid_session = new ValidSession();
+		  Thread sessionCheck = new Thread(valid_session);
+		  sessionCheck.start();
+		  
 		  while(!exitFlag){
-			  
 			  Socket clientSock = null;
 			  		  
 			  //Accept client connection
@@ -99,6 +104,8 @@ class HttpServer {
 			  
 		  }
 		  
+		  sessionCheck.interrupt();
+		  
 		  for(ThreadpoolThread t : threadPool){
 				logger.info(t.getThread().getName()+" is serving "+t.getWorker().currentUrl());
 				try{
@@ -109,9 +116,16 @@ class HttpServer {
 				}
 			}
 		  
-		 }else{
-			 logger.info("Could not start server. Invalid number of arguments");
-		 }
+		  //Shutting down servlets
+		  for(String servlet_name : ParseWebXml.servlets.keySet()){
+			  ParseWebXml.servlets.get(servlet_name).destroy();
+			  logger.info("Destroyed Servlet "+servlet_name);
+		  }
+		  
+		  
+	  }else{
+		logger.info("Could not start server. Invalid number of arguments");
+	  }
 	  
   } //end of main
   

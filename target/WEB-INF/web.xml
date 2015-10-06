@@ -20,4 +20,20 @@
          <servlet-name>default</servlet-name>
          <url-pattern>*.html</url-pattern>
      </servlet-mapping>
+     
+     <servlet-mapping>
+         <servlet-name>TestServlet</servlet-name>
+         <url-pattern>test/batman.html</url-pattern>
+     </servlet-mapping>
+     
+     <servlet>
+     	<servlet-name>CookieServlet</servlet-name>
+     	<servlet-class>edu.upenn.cis.cis455.webserver.CookieServlet</servlet-class>
+     </servlet>
+     
+     <servlet-mapping>
+	     <servlet-name>CookieServlet</servlet-name>
+	     <url-pattern>/cookies</url-pattern>
+	 </servlet-mapping>
+     
 </web-app>

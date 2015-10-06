@@ -29,13 +29,17 @@ public class ServletResponse implements HttpServletResponse {
 	private String char_encoding = "ISO-8859-1";
 	private int content_length;
 	private int buffer_size = 0;
-	public StringWriter sw;
+	public StringWriter sw = null;
 	private Locale loc;
 	private int statusCode = 0 ;
 	private Socket clientSock;
 	private boolean isCommitted = false;
 	private boolean writerCalled = false;
 	private boolean encodingSet = false;
+	private ServletRequest request;
+	private Session session;
+	private boolean isError = false;
+	private String error_page;
 	
 	class ServletWriter extends PrintWriter{
 		
@@ -113,12 +117,15 @@ public class ServletResponse implements HttpServletResponse {
 		if(this.isCommitted())
 			throw new IllegalStateException();
 		
-		String errorPage = Utils.createHTML("Error Page", arg0+" "+arg1);
+		logger.info("in sendError");
+		this.isError = true;
+		this.error_page = Utils.createHTML("Error Page", arg0+" "+arg1);
 		this.response_headers.put("Content-Type", "text/html");
-		PrintWriter pw = this.getWriter();
-		pw.write(errorPage);
-		this.isCommitted = true;
+		this.setStatus(arg0);
 		
+		if(this.sw!=null)
+			this.resetBuffer();
+		this.flushBuffer();
 	}
 
 	/* (non-Javadoc)
@@ -303,9 +310,6 @@ public class ServletResponse implements HttpServletResponse {
 			//Throws IOException if cannot open client socket
 			OutputStream output = this.clientSock.getOutputStream();
 			
-			if(!this.response_headers.containsKey("Content-Length"))
-				this.response_headers.put("Content-Length", Integer.toString(this.sw.toString().length()));
-			
 			if(!this.response_headers.containsKey("Content-Type"))
 				this.response_headers.put("Content-Type", this.getContentType());
 			
@@ -325,9 +329,24 @@ public class ServletResponse implements HttpServletResponse {
 				else
 					sb.append(key+": "+response_headers.get(key)+"\r\n");
 			}
+			
+			
 			sb.append("\r\n");
 			String headers = sb.toString();
-			String body = this.sw.toString();
+			
+			
+			
+			String body;
+			if(!this.isError){
+				body = this.sw.toString();
+				logger.info("Error was called");
+				logger.info("Body: "+body);
+			}
+			else
+				body = this.error_page;
+			
+			this.response_headers.put("Content-Length", Integer.toString(body.length()));
+
 			
 			//Sending the Response
 			output.write(statusLine.getBytes());

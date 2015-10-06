@@ -14,7 +14,8 @@ public class HttpRequest {
 	private String uri;
 	private String version = "1.1";
 	private HashMap <String, String> headers;
-	public static String response_body = null;
+	public String response_body = null;
+	public boolean hasBody = false;
 	
 	/**
 	 * Parses the HTTP request
@@ -77,7 +78,7 @@ public class HttpRequest {
 		
 		//Storing the request body
 		
-		if(this.method.equals("POST") && this.headers.containsKey("content-length") && this.headers.containsKey("content-type")){
+		if(this.method.equals("POST") && this.headers.containsKey("content-length") && this.headers.containsKey("content-type") && (this.headers.get("content-type").startsWith("application/x-www-form-urlencoded"))){
 			int length = Integer.parseInt(this.headers.get("content-length").split("\t")[0]);
 			
 			char [] cbuf = new char [length];
@@ -89,9 +90,10 @@ public class HttpRequest {
 				logger.error("Could not read request");
 			}
 			
-			if(bytes_read > 0)
+			if(bytes_read > 0){
 				this.response_body = new String(cbuf);
-			
+				this.hasBody = true;
+			}
 			logger.info("RESPONSE BODY IN HTTP REQUEST: "+response_body);
 		}
 		return true;

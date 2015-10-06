@@ -36,9 +36,10 @@ class ServletRequest implements HttpServletRequest {
 	static final Logger logger = Logger.getLogger(HttpServer.class);
 	private HashMap <String,String> m_params = new HashMap<String,String>();
 	private Properties m_props = new Properties();
-	private Session m_session = null;
+	public Session m_session;
 	private String char_encoding = "ISO-8859-1";
 	
+	private String requested_session_id = null;
 	private String m_method;
 	public static String uri;
 	public static String version = "1.1";
@@ -47,11 +48,13 @@ class ServletRequest implements HttpServletRequest {
 	private ArrayList<Cookie> cookies;
 	private String path_info;
 	private String servlet_path;
+	private HttpRequest request;
 	
 	ServletRequest() {
 	}
 
 	ServletRequest(HttpRequest request, Socket clientSock, String url_match, Session session) {
+		this.request = request;
 		this.m_method = request.getMethod();
 		this.uri = request.getUri();
 		this.version = request.getVersion();
@@ -72,8 +75,20 @@ class ServletRequest implements HttpServletRequest {
 				String value = cookie.split("=")[1].trim();
 				Cookie newCookie = new Cookie(name,value);
 				this.cookies.add(newCookie);
+				
+				if(name.equals("JSESSIONID")){
+					this.requested_session_id = value;
+					synchronized(ValidSession.session_mappings){
+						if(ValidSession.session_mappings.containsKey(value)){
+							logger.info("Session mapping already has the key "+value);
+							if(this.m_session.isValid()){
+								this.m_session  = ValidSession.session_mappings.get(value);
+								this.m_session.updateAccessedTime();
+							}
+						}
+					}
+				}
 			}
-			
 		}
 	}
 
@@ -87,14 +102,16 @@ class ServletRequest implements HttpServletRequest {
 				query = requestUrl.getQuery();
 			} catch (MalformedURLException e) {
 				if(uri.contains("?"))
-					query = uri.split("?")[1];
+					query = uri.split("\\?")[1];
 			}
 			
 			if(query!= null)
 				parseParameters(query);
 			
 		}else if(m_method.equals("POST")){
-			parseParameters(HttpRequest.response_body);
+			logger.info("Method is POST and message is "+request.hasBody);
+			if(request.hasBody)
+				parseParameters(request.response_body);
 		}
 	}
 
@@ -125,7 +142,7 @@ class ServletRequest implements HttpServletRequest {
 			path = requestUrl.getPath();
 		} catch (MalformedURLException e) {
 			if(uri.contains("?"))
-				path = uri.split("?")[0];
+				path = uri.split("\\?")[0];
 			else
 				path = uri;
 		}
@@ -367,8 +384,7 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.http.HttpServletRequest#getRequestedSessionId()
 	 */
 	public String getRequestedSessionId() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.requested_session_id;
 	}
 
 	/*
@@ -391,8 +407,13 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.http.HttpServletRequest#getRequestURL()
 	 */
 	public StringBuffer getRequestURL() {
-		// TODO Auto-generated method stub
-		return null;
+		StringBuffer sb = new StringBuffer();
+		sb.append("http://");
+		sb.append(this.getServerName()+":");
+		sb.append(this.getServerPort());
+		sb.append(this.getServletPath());
+		return sb;
+		
 	}
 
 	/*
@@ -413,7 +434,14 @@ class ServletRequest implements HttpServletRequest {
 		if (arg0) {
 			if (!hasSession()) {
 				String id = java.util.UUID.randomUUID().toString();
+				logger.info("Session ID: "+id);
 				m_session = new Session(id);
+				
+				//Put newly created session in session map
+				synchronized(ValidSession.session_mappings){
+					logger.info("Putting new session "+id+"in session mapping");
+					ValidSession.session_mappings.put(id, m_session);
+				}
 			}
 		} else {
 			if (!hasSession()) {
@@ -438,7 +466,10 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.http.HttpServletRequest#isRequestedSessionIdValid()
 	 */
 	public boolean isRequestedSessionIdValid() {
-		// TODO Auto-generated method stub
+		if(ValidSession.session_mappings.containsKey(this.requested_session_id)){
+			return ValidSession.session_mappings.get(this.requested_session_id).isValid();
+		}
+		
 		return false;
 	}
 
@@ -449,7 +480,9 @@ class ServletRequest implements HttpServletRequest {
 	 * javax.servlet.http.HttpServletRequest#isRequestedSessionIdFromCookie()
 	 */
 	public boolean isRequestedSessionIdFromCookie() {
-		// TODO Auto-generated method stub
+		if(this.requested_session_id!=null)
+			return true;
+		
 		return false;
 	}
 
@@ -462,7 +495,6 @@ class ServletRequest implements HttpServletRequest {
 		// TODO Auto-generated method stub
 		return false;
 	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -663,7 +695,14 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.ServletRequest#getReader()
 	 */
 	public BufferedReader getReader() throws IOException {
-		StringReader sr = new StringReader(HttpRequest.response_body);
+		StringReader sr;
+		
+		if(request.hasBody){
+			sr = new StringReader(request.response_body);
+		}else{
+			sr = new StringReader("");
+		}
+		
 		BufferedReader br = new BufferedReader(sr);
 		return br;
 	}

@@ -13,10 +13,19 @@ class Session implements HttpSession {
 
 	private long creationTime;
 	private String id;
+	private long lastAccessedTime;
+	private int interval=-1;
+	private Properties m_props = new Properties();
+	private boolean m_valid = true;
 	
 	public Session(String id){
 		creationTime = System.currentTimeMillis();
 		this.id = id;
+		updateAccessedTime();
+	}
+	
+	public void updateAccessedTime(){
+		lastAccessedTime = System.currentTimeMillis();
 	}
 	
 	/* (non-Javadoc)
@@ -37,8 +46,7 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#getLastAccessedTime()
 	 */
 	public long getLastAccessedTime() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.lastAccessedTime;
 	}
 
 	/* (non-Javadoc)
@@ -53,16 +61,14 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#setMaxInactiveInterval(int)
 	 */
 	public void setMaxInactiveInterval(int arg0) {
-		// TODO Auto-generated method stub
-
+		this.interval = arg0;
 	}
 
 	/* (non-Javadoc)
 	 * @see javax.servlet.http.HttpSession#getMaxInactiveInterval()
-	 */
+	 */ 
 	public int getMaxInactiveInterval() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.interval;
 	}
 
 	/* (non-Javadoc)
@@ -76,8 +82,13 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#getAttribute(java.lang.String)
 	 */
 	public Object getAttribute(String arg0) {
-		// TODO Auto-generated method stub
-		return m_props.get(arg0);
+		if(!this.m_valid)
+			throw new IllegalStateException();
+		
+		if(m_props.containsKey(arg0))
+			return m_props.get(arg0);
+		else
+			return null;
 	}
 
 	/* (non-Javadoc)
@@ -91,7 +102,9 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#getAttributeNames()
 	 */
 	public Enumeration getAttributeNames() {
-		// TODO Auto-generated method stub
+		if(!this.m_valid)
+			throw new IllegalStateException();
+		
 		return m_props.keys();
 	}
 
@@ -106,7 +119,13 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#setAttribute(java.lang.String, java.lang.Object)
 	 */
 	public void setAttribute(String arg0, Object arg1) {
-		m_props.put(arg0, arg1);
+		if(!this.m_valid)
+			throw new IllegalStateException();
+		
+		if(arg1 == null)
+			this.removeAttribute(arg0);
+		else
+			m_props.put(arg0, arg1);
 	}
 
 	/* (non-Javadoc)
@@ -120,7 +139,11 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#removeAttribute(java.lang.String)
 	 */
 	public void removeAttribute(String arg0) {
-		m_props.remove(arg0);
+		if(!this.m_valid)
+			throw new IllegalStateException();
+		
+		if(m_props.containsKey(arg0))
+			m_props.remove(arg0);
 	}
 
 	/* (non-Javadoc)
@@ -134,21 +157,26 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#invalidate()
 	 */
 	public void invalidate() {
+		if(!this.m_valid)
+			throw new IllegalStateException();
+		
 		m_valid = false;
+		this.m_props.clear();
 	}
 
 	/* (non-Javadoc)
 	 * @see javax.servlet.http.HttpSession#isNew()
 	 */
 	public boolean isNew() {
-		// TODO Auto-generated method stub
-		return false;
+		if(this.lastAccessedTime > this.creationTime)
+			return false;
+		
+		return true;
 	}
 
 	boolean isValid() {
 		return m_valid;
 	}
 	
-	private Properties m_props = new Properties();
-	private boolean m_valid = true;
+	
 }
