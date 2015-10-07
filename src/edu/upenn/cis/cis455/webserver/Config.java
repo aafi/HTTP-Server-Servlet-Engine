@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * @author Nick Taylor
  */
-class Config implements ServletConfig {
+public class Config implements ServletConfig {
 	private String name;
 	private Context context;
 	private HashMap<String,String> initParams;
@@ -35,7 +35,7 @@ class Config implements ServletConfig {
 		return name;
 	}
 
-	void setInitParam(String name, String value) {
+	public void setInitParam(String name, String value) {
 		initParams.put(name, value);
 	}
 }

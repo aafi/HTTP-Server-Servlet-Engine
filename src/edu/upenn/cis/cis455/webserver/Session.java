@@ -9,7 +9,7 @@ import javax.servlet.http.HttpSessionContext;
 /**
  * @author Todd J. Green
  */
-class Session implements HttpSession {
+public class Session implements HttpSession {
 
 	private long creationTime;
 	private String id;
@@ -17,6 +17,7 @@ class Session implements HttpSession {
 	private int interval=-1;
 	private Properties m_props = new Properties();
 	private boolean m_valid = true;
+	
 	
 	public Session(String id){
 		creationTime = System.currentTimeMillis();
@@ -53,8 +54,7 @@ class Session implements HttpSession {
 	 * @see javax.servlet.http.HttpSession#getServletContext()
 	 */
 	public ServletContext getServletContext() {
-		// TODO Auto-generated method stub
-		return null;
+		return ParseWebXml.context;
 	}
 
 	/* (non-Javadoc)
@@ -174,8 +174,13 @@ class Session implements HttpSession {
 		return true;
 	}
 
-	boolean isValid() {
+	public boolean isValid() {
 		return m_valid;
+	}
+
+
+	public void setM_valid(boolean m_valid) {
+		this.m_valid = m_valid;
 	}
 	
 	

@@ -10,6 +10,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.WriterAppender;
 
 public class HttpResponse {
 	
@@ -135,6 +137,13 @@ public class HttpResponse {
 		String shutdown = "http://localhost:"+HttpServer.getPort()+"/shutdown";
 		String button = "<a href = \""+shutdown+"\"><button>Shut Down</button></a>";
 		body.append(button);
+		
+		body.append("<br><br><br><br><br>Logger Error Outputs<br><br><br>");
+		logger.error("TEST");
+		logger.error("Something else");
+		
+		body.append(HttpServer.errorLog.toString());
+		
 		contents = util.createHTML("Control Panel", body.toString()).getBytes();
 		
 		headers.put("Content-Type: ","text/html \r\n");

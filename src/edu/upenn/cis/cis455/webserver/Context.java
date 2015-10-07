@@ -12,7 +12,7 @@ import java.util.*;
 /**
  * @author Nick Taylor
  */
-class Context implements ServletContext {
+public class Context implements ServletContext {
 	
 	static final Logger logger = Logger.getLogger(HttpServer.class);
 	private HashMap<String,Object> attributes;
@@ -134,5 +134,21 @@ class Context implements ServletContext {
 	
 	void setInitParam(String name, String value) {
 		initParams.put(name, value);
+	}
+
+	public HashMap<String, Object> getAttributes() {
+		return attributes;
+	}
+
+	public void setAttributes(HashMap<String, Object> attributes) {
+		this.attributes = attributes;
+	}
+
+	public HashMap<String, String> getInitParams() {
+		return initParams;
+	}
+
+	public void setInitParams(HashMap<String, String> initParams) {
+		this.initParams = initParams;
 	}
 }

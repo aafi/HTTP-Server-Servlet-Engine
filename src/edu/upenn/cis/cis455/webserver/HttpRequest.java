@@ -77,25 +77,33 @@ public class HttpRequest {
 		} //end of while
 		
 		//Storing the request body
-		
-		if(this.method.equals("POST") && this.headers.containsKey("content-length") && this.headers.containsKey("content-type") && (this.headers.get("content-type").startsWith("application/x-www-form-urlencoded"))){
-			int length = Integer.parseInt(this.headers.get("content-length").split("\t")[0]);
+		if(method == null)
+			logger.info("METHOD IS NULLLLLLLLL");
+		method.equals("POST");
+		if(this.method.equals("POST") && this.headers.containsKey("content-length") && this.headers.containsKey("content-type")){
+			if((this.headers.get("content-type").startsWith("application/x-www-form-urlencoded"))){
+				int length = Integer.parseInt(this.headers.get("content-length").split("\t")[0]);
 			
-			char [] cbuf = new char [length];
-			int bytes_read = 0;
+				char [] cbuf = new char [length];
+				int bytes_read = 0;
 			
-			try {
-				bytes_read = request.read(cbuf);
-			} catch (IOException e) {
-				logger.error("Could not read request");
+				try {
+					bytes_read = request.read(cbuf);
+				} catch (IOException e) {
+					logger.error("Could not read request");
+				}
+			
+				if(bytes_read > 0){
+					this.response_body = new String(cbuf);
+					this.hasBody = true;
+				}
+				logger.info("RESPONSE BODY IN HTTP REQUEST: "+response_body);
 			}
-			
-			if(bytes_read > 0){
-				this.response_body = new String(cbuf);
-				this.hasBody = true;
-			}
-			logger.info("RESPONSE BODY IN HTTP REQUEST: "+response_body);
 		}
+		
+		if(this.version.equals("1.1") && !this.headers.containsKey("host"))
+			return false;
+		
 		return true;
 	}
 	
@@ -119,6 +127,8 @@ public class HttpRequest {
 		}
 	
 		method = parts[0];
+		if(method == null)
+			logger.info("METHOD IS NULLLLLLLLL In parse request line");
 		uri = parts[1];
 		if(!parts[2].contains("HTTP/") && !parts[2].split("/")[0].equals("HTTP")){
 			logger.error("No HTTP version");

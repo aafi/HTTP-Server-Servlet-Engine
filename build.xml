@@ -58,7 +58,7 @@
 
     <target name="pack" description="Create an archive for submission">
       <zip destfile="submit-hw1.zip">
-        <zipfileset dir="." excludes="target/**,extra/**,**/*.class,submit-hw1.zip"/>
+        <zipfileset dir="." excludes="target/**,extra/**,**/*.class,submit-hw1.zip,**/*.log,**/*.log.*"/>
       </zip>
     </target>
 

@@ -152,6 +152,7 @@ public class Utils {
 		case 300: return "Redirected";
 		case 405: return "Method Not Allowed";
 		case 500: return "Internal Error";
+		case 303: return "See Other";
 		}
 		
 		return null;

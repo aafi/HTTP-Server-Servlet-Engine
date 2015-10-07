@@ -31,7 +31,7 @@ import org.apache.log4j.Logger;
 /**
  * @author Todd J. Green
  */
-class ServletRequest implements HttpServletRequest {
+public class ServletRequest implements HttpServletRequest {
 	
 	static final Logger logger = Logger.getLogger(HttpServer.class);
 	private HashMap <String,String> m_params = new HashMap<String,String>();
@@ -41,8 +41,8 @@ class ServletRequest implements HttpServletRequest {
 	
 	private String requested_session_id = null;
 	private String m_method;
-	public static String uri;
-	public static String version = "1.1";
+	public String uri;
+	public String version = "1.1";
 	private HashMap<String, String> headers;
 	private Socket clientSock;
 	private ArrayList<Cookie> cookies;
@@ -50,10 +50,10 @@ class ServletRequest implements HttpServletRequest {
 	private String servlet_path;
 	private HttpRequest request;
 	
-	ServletRequest() {
+	public ServletRequest() {
 	}
 
-	ServletRequest(HttpRequest request, Socket clientSock, String url_match, Session session) {
+	public ServletRequest(HttpRequest request, Socket clientSock, String url_match, Session session) {
 		this.request = request;
 		this.m_method = request.getMethod();
 		this.uri = request.getUri();
@@ -81,7 +81,7 @@ class ServletRequest implements HttpServletRequest {
 					synchronized(ValidSession.session_mappings){
 						if(ValidSession.session_mappings.containsKey(value)){
 							logger.info("Session mapping already has the key "+value);
-							if(this.m_session.isValid()){
+							if(ValidSession.session_mappings.get(value).isValid()){
 								this.m_session  = ValidSession.session_mappings.get(value);
 								this.m_session.updateAccessedTime();
 							}
@@ -343,10 +343,10 @@ class ServletRequest implements HttpServletRequest {
 	 * @see javax.servlet.http.HttpServletRequest#getQueryString()
 	 */
 	public String getQueryString() {
-		if(m_method.equals("GET")){
-			return uri.split("?")[1];
+		if(uri.contains("?")){
+			return uri.split("\\?")[1];
 		}
-		logger.info("Request not of type GET");
+		
 		return null;
 	}
 
@@ -397,7 +397,13 @@ class ServletRequest implements HttpServletRequest {
 			URL resourceUrl = new URL(uri);
 			return resourceUrl.getPath();
 		} catch (MalformedURLException e) {
-			return uri;
+			if(uri.contains("?")){
+				logger.info(uri+" ?");
+				return uri.split("\\?")[0];
+			}else{
+				logger.info(uri);
+				return uri;
+			}
 		}
 	}
 
@@ -839,6 +845,38 @@ class ServletRequest implements HttpServletRequest {
 
 	boolean hasSession() {
 		return ((m_session != null) && m_session.isValid());
+	}
+
+	public HashMap<String, String> getRequestHeaders() {
+		return headers;
+	}
+
+	public void setRequestHeaders(HashMap<String, String> headers) {
+		this.headers = headers;
+	}
+
+	public HashMap<String, String> getM_params() {
+		return m_params;
+	}
+
+	public void setM_params(HashMap<String, String> m_params) {
+		this.m_params = m_params;
+	}
+
+	public String getM_method() {
+		return m_method;
+	}
+
+	public void setM_method(String m_method) {
+		this.m_method = m_method;
+	}
+
+	public String getUri() {
+		return uri;
+	}
+
+	public void setUri(String uri) {
+		this.uri = uri;
 	}
 
 	

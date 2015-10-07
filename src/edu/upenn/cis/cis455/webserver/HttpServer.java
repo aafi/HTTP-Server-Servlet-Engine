@@ -8,6 +8,8 @@ import java.util.*;
 import javax.servlet.http.HttpServlet;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.WriterAppender;
 
 import edu.upenn.cis.cis455.webserver.TestHarness.Handler;
 
@@ -21,6 +23,7 @@ class HttpServer {
   public static ServerSocket serverSock;
   public static boolean exitFlag = false;
   private static ValidSession valid_session;
+  public static StringWriter errorLog;
   
   public static void main(String args[])
   {
@@ -83,6 +86,13 @@ class HttpServer {
 		  valid_session = new ValidSession();
 		  Thread sessionCheck = new Thread(valid_session);
 		  sessionCheck.start();
+		  
+		  //Generating the logger errors
+			errorLog = new StringWriter();
+			WriterAppender appender = new WriterAppender(new PatternLayout(),errorLog);
+			appender.setThreshold(org.apache.log4j.Level.ERROR);
+			appender.setThreshold(org.apache.log4j.Level.INFO);
+			Logger.getRootLogger().addAppender(appender);
 		  
 		  while(!exitFlag){
 			  Socket clientSock = null;

@@ -36,10 +36,10 @@ public class ServletResponse implements HttpServletResponse {
 	private boolean isCommitted = false;
 	private boolean writerCalled = false;
 	private boolean encodingSet = false;
-	private ServletRequest request;
 	private Session session;
 	private boolean isError = false;
 	private String error_page;
+	private ServletRequest request;
 	
 	class ServletWriter extends PrintWriter{
 		
@@ -57,8 +57,13 @@ public class ServletResponse implements HttpServletResponse {
 		
 	}
 	
-	public ServletResponse(Socket clientSock){
+	public ServletResponse(){
+		
+	}
+	
+	public ServletResponse(Socket clientSock, ServletRequest request){
 		this.clientSock = clientSock;
+		this.request = request;
 	}
 	
 	/* (non-Javadoc)
@@ -117,7 +122,7 @@ public class ServletResponse implements HttpServletResponse {
 		if(this.isCommitted())
 			throw new IllegalStateException();
 		
-		logger.info("in sendError");
+		logger.info("in sendError with "+arg0);
 		this.isError = true;
 		this.error_page = Utils.createHTML("Error Page", arg0+" "+arg1);
 		this.response_headers.put("Content-Type", "text/html");
@@ -138,8 +143,8 @@ public class ServletResponse implements HttpServletResponse {
 	/* (non-Javadoc)
 	 * @see javax.servlet.http.HttpServletResponse#sendRedirect(java.lang.String)
 	 */
-	public void sendRedirect(String arg0) throws IOException {
-		System.out.println("[DEBUG] redirect to " + arg0 + " requested");
+	public void sendRedirect(String location) throws IOException {
+		System.out.println("[DEBUG] redirect to " + location + " requested");
 		System.out.println("[DEBUG] stack trace: ");
 		Exception e = new Exception();
 		StackTraceElement[] frames = e.getStackTrace();
@@ -147,6 +152,17 @@ public class ServletResponse implements HttpServletResponse {
 			System.out.print("[DEBUG]   ");
 			System.out.println(frames[i].toString());
 		}
+		
+		this.setStatus(303);
+		if(!location.startsWith("/")){
+			location = request.getRequestURI()+"/"+location;
+		}
+		
+		this.response_headers.put("Location", location);
+		this.resetBuffer();
+		this.flushBuffer();
+			
+		
 	}
 
 	/* (non-Javadoc)
@@ -316,7 +332,7 @@ public class ServletResponse implements HttpServletResponse {
 			if(statusCode == 0)
 				statusCode = 200;
 			
-			String statusLine = "HTTP/"+ServletRequest.version+" "+this.statusCode+" "+Utils.getStatusMessage(this.statusCode)+"\r\n";
+			String statusLine = "HTTP/"+this.request.version+" "+this.statusCode+" "+Utils.getStatusMessage(this.statusCode)+"\r\n";
 			StringBuilder sb = new StringBuilder();
 			
 			for(String key : response_headers.keySet()){
@@ -330,6 +346,22 @@ public class ServletResponse implements HttpServletResponse {
 					sb.append(key+": "+response_headers.get(key)+"\r\n");
 			}
 			
+			//This adds the session cookie header incase it was not added
+			if(this.response_headers.containsKey("Set-Cookie")){
+				if(!this.response_headers.get("Set-Cookie").contains("JSESSIONID=")){
+					if(this.request.m_session!=null){
+						sb.append("Set-Cookie: JSESSIONID="+this.request.m_session);
+						logger.info("Adding JSESSION");
+					}
+				}
+			}else{
+				if(this.request.m_session!=null){
+					sb.append("Set-Cookie: JSESSIONID="+this.request.m_session.getId()+"; Max-age="+this.request.m_session.getMaxInactiveInterval());
+					logger.info("Adding JSESSION");
+				}
+			}
+			
+			
 			
 			sb.append("\r\n");
 			String headers = sb.toString();
@@ -339,11 +371,11 @@ public class ServletResponse implements HttpServletResponse {
 			String body;
 			if(!this.isError){
 				body = this.sw.toString();
-				logger.info("Error was called");
-				logger.info("Body: "+body);
 			}
-			else
+			else{
+				logger.info("Error was called");
 				body = this.error_page;
+			}
 			
 			this.response_headers.put("Content-Length", Integer.toString(body.length()));
 
@@ -406,6 +438,18 @@ public class ServletResponse implements HttpServletResponse {
 	 */
 	public Locale getLocale() {
 		return this.loc;
+	}
+
+	public HashMap<String, String> getResponse_headers() {
+		return response_headers;
+	}
+
+	public void setResponse_headers(HashMap<String, String> response_headers) {
+		this.response_headers = response_headers;
+	}
+
+	public void setCommitted(boolean isCommitted) {
+		this.isCommitted = isCommitted;
 	}
 
 }

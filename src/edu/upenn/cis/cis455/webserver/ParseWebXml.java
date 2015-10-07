@@ -17,12 +17,13 @@ public class ParseWebXml {
 	public static HashMap<String,HttpServlet> servlets;
 	public static HashMap<String,String> urls;
 	public static String display_name;
+	public static Context context;
 	
 	public static void parseXml(String xml) throws Exception{
 		Handler h;
 		h = parseWebdotxml(xml);
 		display_name = h.display_name;
-		Context context = createContext(h);
+		context = createContext(h);
 		servlets = createServlets(h, context);
 		urls = createUrlMappings(h);
 	}

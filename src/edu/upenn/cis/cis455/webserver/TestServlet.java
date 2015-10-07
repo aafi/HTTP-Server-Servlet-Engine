@@ -13,6 +13,33 @@ public class TestServlet extends HttpServlet {
 	
 	static final Logger logger = Logger.getLogger(HttpServer.class);
 	
+	public void doPost(HttpServletRequest request, HttpServletResponse response) 
+		       throws java.io.IOException
+		  {
+		    response.setContentType("text/html");
+		    
+//		    out.println("<html><head><title>Test</title></head><body>");
+//		    out.println("RequestURL: ["+request.getRequestURL()+"]<br>");
+//		    out.println("RequestURI: ["+request.getRequestURI()+"]<br>");
+//		    out.println("PathInfo: ["+request.getPathInfo()+"]<br>");
+//		    out.println("Context path: ["+request.getContextPath()+"]<br>");
+//		    out.println("Header: ["+request.getHeader("Accept-Language")+"]<br>");
+//		    out.println("Body: ["+request.getReader().read()+"]<br>");
+//		    out.println("</body></html>");
+		    
+//		    String body = "<html><head><title>Test</title></head><body>Body: [SUCCCCESSSSS!!!!] ["+request.getReader().readLine()+"]<br>";
+//		    response.setContentLength(body.length());
+		    
+		    request.getSession(true);
+		    PrintWriter out = response.getWriter();
+		    request.getSession(true).setMaxInactiveInterval(10);
+//		    response.sendRedirect("/");
+		    logger.info("Reconstructed url: "+request.getRequestURL().toString());
+		    out.write("HI!");
+		    logger.info("PARAMETERS: "+request.getParameter("name1"));
+		    response.flushBuffer();
+		  }
+
 	public void doGet(HttpServletRequest request, HttpServletResponse response) 
 		       throws java.io.IOException
 		  {
@@ -29,14 +56,14 @@ public class TestServlet extends HttpServlet {
 		    
 //		    String body = "<html><head><title>Test</title></head><body>Body: [SUCCCCESSSSS!!!!] ["+request.getReader().readLine()+"]<br>";
 //		    response.setContentLength(body.length());
-		    request.getSession(true);
 		    
+		    request.getSession(true);
 		    PrintWriter out = response.getWriter();
-//		    logger.info("COOKIES: "+request.getCookies()[0].getName());
+		    request.getSession(true).setMaxInactiveInterval(10);
+//		    response.sendRedirect("cookies/");
 		    logger.info("Reconstructed url: "+request.getRequestURL().toString());
 		    out.write("HI!");
 		    logger.info("PARAMETERS: "+request.getParameter("name1"));
-		    response.sendError(404);
 		    response.flushBuffer();
 		  }
 

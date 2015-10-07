@@ -127,12 +127,12 @@ public class Worker implements Runnable{
 				logger.info(isServletRequest);
 				logger.info("URL MATCH: "+url_match);
 				//Check if servlet request
-				if(isServletRequest){
+				if(isServletRequest && isGoodRequest){
 					HttpServlet servlet;
 					servlet = ParseWebXml.servlets.get(ParseWebXml.urls.get(url_match));
 					Session session = null;
 					ServletRequest servletRequest = new ServletRequest(request,clientSock, url_match, session);
-					ServletResponse servletResponse = new ServletResponse(clientSock);
+					ServletResponse servletResponse = new ServletResponse(clientSock, servletRequest);
 					try {
 						servlet.service(servletRequest, servletResponse);
 					} catch (ServletException | IOException e) {
